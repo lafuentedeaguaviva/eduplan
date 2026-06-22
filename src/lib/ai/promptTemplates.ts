@@ -24,10 +24,17 @@ const AGENT_PERSONA =
 const STRICT_INSTRUCTIONS = `\
 **Instrucciones estrictas:**
 - No incluyas metacomentarios, introducciones ni despedidas (nada de "Claro, aquí está", "A continuación", etc.).
+- ESTÁ ABSOLUTAMENTE PROHIBIDO incluir saludos o texto conversacional DENTRO de los campos JSON generados.
 - No uses emojis, asteriscos decorativos ni formatos innecesarios.
 - Responde únicamente con la redacción solicitada.
 - Usa lenguaje claro, pedagógico y profesional, orientado a docentes.
-- Escribe desde la perspectiva de un docente experto: usa primera persona singular o modo imperativo directo según el contexto. Nunca uses "nosotros", "somos" ni frases de equipo.`;
+- Escribe desde la perspectiva de un docente experto: usa tercera persona singular o modo imperativo directo según el contexto. Nunca uses "nosotros", "somos" ni frases de equipo.
+- EXCLUYE POR COMPLETO cualquier mención a tradiciones, "Madre Tierra", rituales o espiritualidad relacionada con la naturaleza.`;
+
+const DEPTH_RULES = `**Reglas según profundidad:**
+- Si es "Solo errores de redaccion" o "Solo correcciones": Actúa ÚNICAMENTE como un corrector ortotipográfico. NO agregues ideas nuevas ni elimines información. NO reestructures los párrafos ni cambies el significado original. Limítate a corregir ortografía, gramática y puntuación (los campos vacíos déjalos vacíos, excepto adaptaciones especiales si aplica).
+- Si es "Sugerir moderadamente": Actúa como Editor Académico y Asesor Pedagógico. Mejora la fluidez y usa vocabulario técnico-pedagógico. Ayuda a desarrollar brevemente las ideas sueltas dándoles sentido pedagógico (puedes completar lo que hay), pero NO inventes conceptos grandes ni cambies el objetivo principal.
+- Si es "Sugerir ampliamente" o "Refinar profundamente": Actúa como Experto en Pedagogía y Diseño Curricular. Llena los vacíos con contenido pertinente, diseña actividades o justificaciones faltantes, reestructura y amplía libremente para crear un resultado robusto y altamente didáctico.`;
 
 /**
  * Compositor de prompts.
@@ -47,13 +54,14 @@ function buildPrompt(taskDescription: string, uniqueBody: string, extraInstructi
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const MOMENTOS_DEFINITIONS = {
-    practica:   'La Práctica como momento metodológico inicia desde la experiencia (lo que ya sabemos), el contacto directo con la realidad (observación y vivencia) o la experimentación (manipular objetos o fenómenos). Su objetivo es aterrizar el aprendizaje en situaciones concretas y tangibles.',
-    teoria:     'La Teoría implica la re-significación y el análisis crítico de la información. No es solo lectura pasiva, sino la construcción de conceptos, la investigación documental y el diálogo con el conocimiento acumulado para comprender la realidad de forma abstracta y sistémica.',
+    practica: 'La Práctica como momento metodológico inicia desde la experiencia (lo que ya sabemos), el contacto directo con la realidad (observación y vivencia) o la experimentación (manipular objetos o fenómenos). Su objetivo es aterrizar el aprendizaje en situaciones concretas y tangibles.',
+    teoria: 'La Teoría implica la re-significación y el análisis crítico de la información. No es solo lectura pasiva, sino la construcción de conceptos, la investigación documental y el diálogo con el conocimiento acumulado para comprender la realidad de forma abstracta y sistémica.',
     produccion: 'La Producción es el momento de la creación e innovación pedagógica. Se refiere a la elaboración de productos tangibles (objetos, escritos, maquetas) o intangibles (ideas, soluciones, propuestas) que demuestran la aplicación creativa y útil de lo aprendido.',
     valoracion: 'La Valoración es una reflexión ética y postura crítica sobre el aprendizaje. Busca determinar la importancia del conocimiento para la vida, la comunidad y el bienestar común. Evalúa si lo aprendido contribuye a la transformación positiva de la sociedad.',
-    ser:        'La Dimensión del Ser se enfoca en los valores, actitudes y principios éticos del estudiante. Evalúa el desarrollo de la espiritualidad, la responsabilidad y la convivencia armónica.',
-    saber:      'La Dimensión del Saber evalúa los conocimientos cognitivos, la comprensión teórica y la capacidad de análisis de contenidos científicos y culturales.',
-    hacer:      'La Dimensión del Hacer se centra en las habilidades prácticas, la aplicación de conocimientos en situaciones reales y la producción de resultados tangibles o técnicos.',
+    ser: 'La Dimensión del Ser se enfoca en los valores, actitudes y principios éticos del estudiante. Evalúa el desarrollo de la espiritualidad, la responsabilidad y la convivencia armónica.',
+    saber: 'La Dimensión del Saber evalúa los conocimientos cognitivos, la comprensión teórica y la capacidad de análisis de contenidos científicos y culturales.',
+    hacer: 'La Dimensión del Hacer se centra en las habilidades prácticas, la aplicación de conocimientos en situaciones reales y la producción de resultados tangibles o técnicos.',
+    decidir: 'La Dimensión del Decidir se enfoca en la capacidad de asumir responsabilidades, tomar decisiones asertivas y actuar con compromiso para el bien común en la comunidad.',
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -61,18 +69,20 @@ export const MOMENTOS_DEFINITIONS = {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export type TonoRedaccion =
-    | 'Motivacional-afectivo'
-    | 'Instructivo-operativo'
-    | 'Técnico-pedagógico'
-    | 'Reflexivo-metacognitivo'
-    | 'Lúdico-narrativo';
+    | 'Academico'
+    | 'Reflexivo'
+    | 'Dinamico';
 
 export const TONOS_LABEL: Record<TonoRedaccion, string> = {
-    'Motivacional-afectivo':   'Motivacional-afectivo',
-    'Instructivo-operativo':   'Instructivo-operativo',
-    'Técnico-pedagógico':      'Técnico-pedagógico',
-    'Reflexivo-metacognitivo': 'Reflexivo-metacognitivo',
-    'Lúdico-narrativo':        'Lúdico-narrativo',
+    'Academico': 'Académico / Directivo',
+    'Reflexivo': 'Crítico / Reflexivo',
+    'Dinamico': 'Dinámico / Motivacional',
+};
+
+export const TONOS_INSTRUCTION: Record<TonoRedaccion, string> = {
+    'Academico': 'Tono Académico-Directivo: Usa un lenguaje formal, riguroso y estructurado. Las instrucciones deben ser directas y sin rodeos. Prioriza la precisión técnica y utiliza verbos cognitivos fuertes. No uses lenguaje emotivo.',
+    'Reflexivo': 'Tono Crítico-Reflexivo: Fomenta la metacognición y el pensamiento profundo. Usa un lenguaje enfocado en el descubrimiento, el cuestionamiento y el análisis del entorno. Prioriza las preguntas y el impacto comunitario.',
+    'Dinamico': 'Tono Dinámico-Experiencial: Usa un lenguaje empático, entusiasta y orientado a la acción práctica. El enfoque debe sentirse interactivo y lúdico. Prioriza verbos que generen curiosidad y movimiento.'
 };
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -113,82 +123,135 @@ Mantén coherencia en el vocabulario y el registro lingüístico conforme al ton
 [DEFINICION_MOMENTO]
 
 **Estructura a seguir:**
-1. Fundamentación del momento
-2. Desarrollo de la actividad
-3. Preguntas para la mediación docente
-4. Adaptaciones por nivel educativo
-5. Rol del docente
-6. Cierre y conexión con el siguiente momento`
+[ESTRUCTURA_A_SEGUIR]`
 );
 
 /**
- * Objetivo estratégico de un área del PDC.
+ * Objetivos de aprendizaje de un área del PDC (Batch).
  */
 export const SYSTEM_PROMPT_STRATEGIC_OBJECTIVE = buildPrompt(
-    `Tu tarea es refinar el objetivo estratégico de un Plan de Desarrollo Curricular, basándote en la descripción enviada y el tono seleccionado.`,
-    `**Tono:** [TONO_SELECCIONADO]
-**Profundidad de corrección:** [CORRECCION_PROFUNDIDAD]
+    `Tu tarea es refinar una lista de objetivos de aprendizaje de un Plan de Desarrollo Curricular, basándote en la descripción enviada y el tono seleccionado.`,
+    `**REGLAS PARA EL OBJETIVO DE APRENDIZAJE (ESTRICTAS):**
+- El verbo principal DEBE estar redactado SIEMPRE en modo indicativo, tercera persona del singular (por ejemplo: Explica, Categoriza, Conoce, Comprende).
+- ESTÁ TOTALMENTE PROHIBIDO usar verbos en infinitivo (NO uses explicar, NO uses categorizar).
+- Debe redactarse de manera clara, precisa y respondiendo a los contenidos a desarrollar.
+- Expresa el desempeño académico que se espera logre el estudiante con el avance de los contenidos.
+- La redacción de CADA objetivo (en descripcion_ia) DEBE comenzar SIEMPRE con un guion y un espacio ("- ") a modo de viñeta.
+- El verbo principal (y primera palabra después del guion) DEBE empezar siempre con MAYÚSCULA INICIAL.
 
-**Descripción original:**
-[DESCRIPCION_OBJETIVO]
+**INSTRUCCIÓN CRÍTICA — FORMATO DE RESPUESTA:**
+Responde ÚNICAMENTE con un array JSON válido. No uses bloques \`\`\`json ni incluyas texto fuera del JSON.
+El JSON debe ser un array de objetos, donde cada objeto corresponde a un objetivo de la lista original.
+Cada objeto DEBE incluir el "id" original del objetivo y la clave "descripcion_ia" con el texto refinado.
+Ejemplo de formato:
+[
+  {"id": 1, "descripcion_ia": "- Explica las nociones fundamentales..."},
+  {"id": 2, "descripcion_ia": "- Categoriza los números naturales..."}
+]
+
+**Tono:** [TONO_SELECCIONADO]
+**Profundidad de corrección seleccionada:** [CORRECCION_PROFUNDIDAD]
+${DEPTH_RULES}
 
 **Contexto del PDC:**
-[CONTEXTO_PDC]`
+[CONTEXTO_PDC]
+
+**Objetivos Originales (con IDs):**
+[DATOS_OBJETIVOS]`
 );
 
 /**
  * Batch semanal unificado: consolida Momentos, Recursos/Fuentes y Adaptaciones
- * en una sola llamada a la IA. Devuelve un JSON con 4 claves _ia.
+ * para MÚLTIPLES semanas en una sola llamada a la IA. Devuelve un array JSON.
  */
 export const SYSTEM_PROMPT_WEEKLY_BATCH = buildPrompt(
-    `Tu tarea es consolidar y refinar toda la planificación de UNA semana (Momentos Metodológicos, Recursos/Fuentes y Adaptaciones) en una sola pasada.`,
-    `**Tono:** [TONO_SELECCIONADO]
-**Profundidad:** [CORRECCION_PROFUNDIDAD]
+    `Tu tarea es consolidar y refinar toda la planificación de VARIAS semanas (Momentos Metodológicos, Recursos/Fuentes y Adaptaciones) en una sola pasada.`,
+    `**INSTRUCCIÓN CRÍTICA — FORMATO DE RESPUESTA:**
+Responde ÚNICAMENTE con un array JSON válido. No uses bloques \`\`\`json. No incluyas texto ni markdown fuera del JSON.
+El JSON debe ser un array de objetos, donde cada objeto corresponde a una semana enviada e incluye su "semana_id" original más las 4 claves refinadas: "momentos_ia", "recursos_fuentes_ia", "adaptaciones_basicas_ia", "adaptaciones_especiales_ia".
+
+Ejemplo de formato correcto:
+[
+  {
+    "semana_id": "id-de-la-semana",
+    "momentos_ia": "texto...",
+    "recursos_fuentes_ia": "texto...",
+    "adaptaciones_basicas_ia": "texto...",
+    "adaptaciones_especiales_ia": "texto..."
+  }
+]
+
+**Tono:** [TONO_SELECCIONADO]
+**Profundidad de corrección seleccionada:** [CORRECCION_PROFUNDIDAD]
+${DEPTH_RULES}
 
 **Contexto del PDC:**
 [CONTEXTO_PDC]
 
-**Formato de salida para "momentos_ia":**
-Un bloque de texto coherente estructurado en:
-1. PRÁCTICA (Fundamentación y Actividad)
-2. TEORÍA (Análisis y Conceptos)
-3. PRODUCCIÓN (Creación e Innovación)
-4. VALORACIÓN (Reflexión Ética)
+**Reglas de contenido (ESTRICTAS):**
+- REGLA DE MAYÚSCULAS: En todas las listas (momentos, recursos, adaptaciones), la primera palabra después de la viñeta ("- ") DEBE comenzar SIEMPRE con MAYÚSCULA INICIAL.
+- Si la Profundidad es "Sugerir ampliamente" o "Refinar profundamente", TU OBLIGACIÓN es LLENAR TODAS LAS CASILLAS ("momentos_ia", "recursos_fuentes_ia", "adaptaciones_basicas_ia") con propuestas pedagógicas novedosas, creativas y totalmente coherentes con el Contexto del PDC, INCLUSO SI LOS DATOS DE ENTRADA ESTÁN VACÍOS. (Solo "adaptaciones_especiales_ia" queda vacío si no hay discapacidad global identificada).
+- Para "momentos_ia": Presenta la Práctica, Teoría, Producción y Valoración en una lista usando el símbolo de viñeta "- ". (Invéntalos si la profundidad lo requiere y no hay datos).
+- ESTRICTAMENTE PROHIBIDO usar palabras de enlace o conectores temporales entre los momentos (como "luego", "a continuación", "después", "posteriormente", etc.). Cada momento debe ser un punto independiente en la lista.
+- El texto debe estar en Presente de Indicativo, primera persona del plural (forma inclusiva: "aprendemos", "conocemos", etc.) describiendo el proceso de aprendizaje.
+- Para la redacción de cada momento metodológico, sigue ESTRICTAMENTE la siguiente estructura:
+  * Práctica: Primero una descripción de la actividad y luego preguntas activadoras.
+  * Teoría: Solo la redacción de la estrategia.
+  * Producción: Descripción de la actividad y un solo instrumento sugerido.
+  * Valoración: Siempre preguntas.
+- Identifica el momento poniendo la etiqueta entre paréntesis: (Práctica), (Teoría), (Producción) o (Valoración) ÚNICAMENTE AL FINAL de cada punto de la lista correspondiente a ese momento. NUNCA como título inicial ni encima.
+- NO menciones días de la semana ni fechas bajo ninguna circunstancia.
+- Para "recursos_fuentes_ia": Sugiere ÚNICAMENTE recursos creativos y novedosos (materiales, didácticos o tecnológicos) pertinentes y organízalos usando viñetas ("- "). Coloca la etiqueta del momento entre paréntesis (Práctica), (Teoría), (Producción) o (Valoración) ÚNICAMENTE AL FINAL de cada viñeta, nunca al principio. ESTÁ ESTRICTAMENTE PROHIBIDO inventar, sugerir o mencionar libros, sitios web, bibliografía o "Fuentes de apoyo". Limítate exclusivamente a los materiales educativos. (Si la profundidad es moderada/solo corrección y no hay datos de recursos en la entrada, devuelve "").
+- Para "adaptaciones_basicas_ia": Lista las adaptaciones curriculares generales, metodológicas o de apoyo utilizando viñetas ("- "). Sugiere estrategias de atención a la diversidad si la profundidad es "Sugerir ampliamente". NO agregues ningún título al inicio. (Si la profundidad es moderada/solo corrección y no hay datos, devuelve "").
+- Para "adaptaciones_especiales_ia": Redacta sugerencias de adaptaciones metodológicas para CADA UNA de las discapacidades en "DISCAPACIDAD GLOBAL IDENTIFICADA". DEBES usar EXACTAMENTE este formato: primero el subtítulo con la discapacidad, y luego las viñetas terminando con el momento entre paréntesis.
+Ejemplo OBLIGATORIO de formato:
+**Adaptaciones para [Nombre Discapacidad]:**
+- [Sugerencia de adaptación detallada...] (Práctica)
+- [Sugerencia de adaptación detallada...] (Teoría)
+- [Sugerencia de adaptación detallada...] (Producción)
+- [Sugerencia de adaptación detallada...] (Valoración)
 
-**Formato de salida para "recursos_fuentes_ia":** Texto profesional y fluido. Si no hay datos: "No definido".
-**Formato de salida para "adaptaciones_basicas_ia":** Texto empático. Si no hay datos: "No definido".
-**Formato de salida para "adaptaciones_especiales_ia":** Texto preciso. Si no hay datos: "No definido".
+REGLA ABSOLUTA e INQUEBRANTABLE: Las etiquetas (Práctica), (Teoría), (Producción), (Valoración) DEBEN ir AL FINAL de la viñeta, NUNCA al principio. 
+Si no es necesario adaptar un momento específico, indícalo expresamente (ej: "- No requiere adaptación (Práctica)"). 
+Si una discapacidad en particular NO necesita NINGUNA adaptación para los contenidos de esta semana, escribe exactamente: "No requiere adaptación." debajo de su subtítulo.
+Si no hay discapacidad global, devuelve "".
+- Debes devolver exactamente un objeto por cada semana en la entrada, manteniendo su "semana_id".
 
-**Datos de entrada:**
-Momentos:
-[DATOS_MOMENTOS]
-
-Recursos y Fuentes:
-[DATOS_RECURSOS_FUENTES]
-
-Adaptaciones:
-[DATOS_ADAPTACIONES]`,
-    `- Responde ÚNICAMENTE con un objeto JSON válido (sin bloques \`\`\`json) con exactamente estas 4 claves: "momentos_ia", "recursos_fuentes_ia", "adaptaciones_basicas_ia", "adaptaciones_especiales_ia".`
+**Datos de Semanas:**
+[DATOS_SEMANAS]`
 );
 
 /**
- * Consolidado batch de criterios SER/SABER/HACER para el reporte final.
+ * Consolidado batch de criterios SER/SABER/HACER y ADAPTACIONES para el reporte final.
+ * Devuelve un JSON con 3 claves para mapeo directo a pdcs_area_trabajo.
  */
 export const SYSTEM_PROMPT_BATCH_CRITERIOS = buildPrompt(
-    `Tu tarea es consolidar y refinar los criterios de evaluación de las dimensiones SER, SABER y HACER en un bloque de texto coherente.`,
-    `- Los criterios deben ser medibles y redactados en tercera persona del plural.
+    `Tu tarea es consolidar y refinar los criterios de evaluación (SER, SABER, HACER), las adaptaciones no significativas y los criterios de evaluación para adaptaciones especiales en un bloque coherente.`,
+    `- OBLIGATORIO usar los subtítulos exactos: Ser:, Saber:, Hacer: (sin asteriscos, sin comillas, sólo la palabra con dos puntos).
+- Cada dimensión debe contener una numeración independiente (es decir: 1., 2., 3...).
+- Escribe desde la perspectiva de un docente experto: Tercera persona singular en modo imperativo (ejemplos: "Reconoce", "Aplica", "Valora").
 - **Tono:** [TONO_SELECCIONADO]
-- **Profundidad:** [CORRECCION_PROFUNDIDAD]
-- Estructura de salida:
-  - SER: [Redacción mejorada]
-  - SABER: [Redacción mejorada]
-  - HACER: [Redacción mejorada]
+- **Profundidad de corrección seleccionada:** [CORRECCION_PROFUNDIDAD]
+${DEPTH_RULES}
+
+**Estructura de salida requerida (JSON):**
+{
+  "criterios_evaluacion_ia": "Texto con los criterios (SER, SABER, HACER) proporcionados. Si una dimensión no tiene datos, no la incluyas.",
+  "adaptaciones_no_significativas_ia": "Síntesis de adaptaciones básicas. Si no hay datos, devuelve \"\".",
+  "criterios_evaluacion_adaptaciones_ia": "Toma los mismos Criterios de Evaluación generados (del campo criterios_evaluacion_ia) y adáptalos específicamente para CADA UNA de las discapacidades presentes en la DISCAPACIDAD GLOBAL IDENTIFICADA. Mantén la misma esencia. Usa ESTE FORMATO EXACTO:\n\nDiscapacidad: [Nombre Discapacidad]\nSer:\n1. [Criterio adaptado]\nSaber:\n1. [Criterio adaptado]\nHacer:\n1. [Criterio adaptado]\n\nSi para alguna dimensión (Ser, Saber o Hacer) de una discapacidad no es necesario realizar una adaptación, debes escribirlo expresamente (ej: \"1. No se requieren adaptaciones específicas para esta dimensión\"). Si no hay discapacidad global, devuelve \"\"."
+}
+
+**REGLA CRÍTICA:** Si la Profundidad es "Sugerir ampliamente" o "Refinar profundamente", TU OBLIGACIÓN es CREAR Y LLENAR los criterios faltantes basándote en el Contexto del PDC, INCLUSO SI LOS DATOS DE ENTRADA ESTÁN VACÍOS. Si la profundidad es menor a estas, y un campo está vacío o dice "Sin datos", la respuesta para esa clave DEBE ser una cadena vacía ("") y no debes inventar nada.
 
 **Contexto del PDC:**
 [CONTEXTO_PDC]
 
-**Datos de entrada:**
-[DATOS_CRITERIOS]`
+**Datos de entrada (Criterios Originales):**
+[DATOS_CRITERIOS]
+
+**Datos de entrada (Adaptaciones Planificadas):**
+[DATOS_ADAPTACIONES]`,
+    `- Responde ÚNICAMENTE con el objeto JSON válido, sin bloques de código ni texto adicional.`
 );
 
 // ─── Alias de compatibilidad hacia atrás (importados en aiOptimization.service) ─

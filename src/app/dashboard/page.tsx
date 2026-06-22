@@ -71,8 +71,12 @@ export default function DashboardPage() {
         }
     };
 
-    const handleResume = (id: string) => {
-        router.push(`/dashboard/pdcs/new?id=${id}`);
+    const handleResume = (id: string, step?: number) => {
+        if (step) {
+            router.push(`/dashboard/pdcs/new?id=${id}&step=${step}`);
+        } else {
+            router.push(`/dashboard/pdcs/new?id=${id}`);
+        }
     };
 
     const greeting = () => {
@@ -93,7 +97,7 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-6">
                     {profile?.foto_url ? (
                         <div className="size-20 rounded-[2rem] border-4 border-white shadow-luxe overflow-hidden bg-slate-100 shrink-0">
-                             <img src={profile.foto_url} alt="Profile" className="size-full object-cover" />
+                            <img src={profile.foto_url} alt="Profile" className="size-full object-cover" />
                         </div>
                     ) : (
                         <div className="size-20 rounded-[2rem] border-4 border-white shadow-luxe bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white text-2xl font-black shrink-0">

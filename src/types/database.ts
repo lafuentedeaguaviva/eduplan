@@ -110,6 +110,8 @@ export interface DbAreaTrabajo {
     nombre: string | null;
     /** ID del registro de diseño (Step 8) vinculado */
     pdc_area_trabajo_id: string | null;
+    /** ID del perfil del director asignado */
+    director_id: string | null;
 }
 
 /**
@@ -139,12 +141,17 @@ export interface DbPdcsAreaTrabajo {
     id: string;
     /** ID del PDC maestro al que pertenece este diseño */
     pdc_id: string;
+    /** ID del área de trabajo vinculada */
+    area_trabajo_id?: string | null;
     periodo_semanal: number | null;
     criterios_evaluacion_ia: string | null;
+    adaptaciones_no_significativas: string | null;
     adaptaciones_no_significativas_ia: string | null;
     criterios_evaluacion_adaptaciones_ia: string | null;
     criterios_evaluacion?: any[] | null;
     criterio_adptacion_evaluacion?: any[] | null;
+    objetivo_estrategico?: string | null;
+    objetivo_estrategico_ia?: string | null;
     created_at: string;
     updated_at: string;
 }
@@ -165,9 +172,11 @@ export interface DbPdc {
     observaciones_director: string | null;
     fecha_inicio: string | null;
     fecha_fin: string | null;
+    producto_final: string | null;
     escritura_tipo_ia: string | null;
     correccion_profundidad_ia: string | null;
     evaluacion_tipo_ia: string | null;
+    ia_habilitado: number | null;
     created_at: string;
     updated_at: string;
 }
@@ -181,6 +190,8 @@ export interface DbPlanificacionSemanal {
     id: string;
     /** ID del área de trabajo propietaria */
     area_trabajo_id: string;
+    /** ID del diseño de PDC al que pertenece esta planificación */
+    pdc_area_trabajo_id?: string | null;
     /** Gestión escolar (ej: 2024) */
     gestion: number;
     /** Trimestre del año (1, 2 o 3) */
@@ -459,7 +470,7 @@ export interface DbObjetivoEstrategico {
     id: string;
     pdc_area_trabajo_id: string;
     descripcion: string;
-    descripcion_ia: string | null;
+    descripcion_ia?: string;
     created_at?: string;
 }
 

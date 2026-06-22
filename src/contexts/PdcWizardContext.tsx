@@ -28,7 +28,7 @@ export function PdcWizardProvider({ children }: { children: ReactNode }) {
                 title={controller.feedback.title}
                 description={controller.feedback.description}
                 confirmText={controller.feedback.isConfirm ? controller.feedback.confirmText : 'Entendido'}
-                cancelText={controller.feedback.isConfirm ? controller.feedback.cancelText : 'hide'}
+                cancelText={controller.feedback.isConfirm ? controller.feedback.cancelText : 'Ocultar'}
                 variant={controller.feedback.type === 'error' ? 'danger' : controller.feedback.type === 'success' ? 'success' : 'warning'}
                 onConfirm={() => {
                     if (controller.feedback.isConfirm) {

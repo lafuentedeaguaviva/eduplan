@@ -60,8 +60,21 @@ export const AiService = {
       throw new Error("Has alcanzado el límite diario de solicitudes de IA.");
     }
 
-    // 3. Llamar a la IA con las credenciales
-    const result = await gemini.generateContent(prompt, finalCredentials, context);
+    // console.log(`\n\n========== PROMPT ENVIADO A IA (GENERAL) ==========\n${prompt}\n====================================================\n`);
+
+    // 3. Llamar a la IA (Preferir DeepSeek según solicitud del usuario)
+    let result;
+    try {
+        const deepseekKey = process.env.DEEPSEEK_API_KEY;
+        if (!deepseekKey) throw new Error("No DeepSeek key");
+        
+        const dsResult = await (await import("../lib/deepseekWrapper")).deepseek.generateContent(prompt, { apiKey: deepseekKey }, context);
+        result = { ...dsResult, provider: 'deepseek' };
+    } catch (dsError) {
+        console.warn("DeepSeek no disponible, usando Gemini como fallback:", dsError);
+        const gResult = await gemini.generateContent(prompt, finalCredentials, context);
+        result = { ...gResult, provider: 'gemini' };
+    }
 
     // 4. Actualizar contador diario y fecha de última solicitud
     const { error: updateError } = await client
@@ -82,7 +95,8 @@ export const AiService = {
       prompt_tokens: result.usage?.promptTokenCount || 0,
       completion_tokens: result.usage?.candidatesTokenCount || 0,
       total_tokens: result.usage?.totalTokenCount || 0,
-      tipo_operacion: finalCredentials.accessToken ? "oauth_generacion" : "apikey_generacion",
+      tipo_operacion: result.provider === 'deepseek' ? "deepseek_generacion" : (finalCredentials.accessToken ? "oauth_generacion" : "apikey_generacion"),
+      proveedor: result.provider,
     });
 
     return result.text;

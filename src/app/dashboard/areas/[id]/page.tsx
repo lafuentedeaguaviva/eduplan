@@ -145,13 +145,13 @@ export default function AreaDashboardPage({ params }: { params: Promise<{ id: st
             </div>
 
             <AlertDialog
-                isOpen={feedback.isOpen && !!feedback.isConfirm}
+                isOpen={feedback.isOpen}
                 onClose={hideFeedback}
-                onConfirm={feedback.onConfirm || (() => { })}
+                onConfirm={feedback.onConfirm || hideFeedback}
                 title={feedback.title}
                 description={feedback.description}
-                confirmText={feedback.confirmText || 'Confirmar'}
-                cancelText={feedback.cancelText || 'Cancelar'}
+                confirmText={feedback.confirmText || 'Entendido'}
+                cancelText={feedback.isConfirm ? (feedback.cancelText || 'Cancelar') : undefined}
                 variant={feedback.type === 'error' ? 'danger' : feedback.type === 'warning' ? 'warning' : 'info'}
             />
 
@@ -345,7 +345,7 @@ export default function AreaDashboardPage({ params }: { params: Promise<{ id: st
                                 return (
                                     <Card key={theme.id} className="p-0 overflow-hidden border-slate-100 hover:border-primary/20 shadow-soft transition-all group/user">
                                         <div
-                                            onClick={() => hasSubthemes && toggleUserTheme(theme.id)}
+                                            onClick={() => toggleUserTheme(theme.id)}
                                             className="p-5 flex items-center justify-between cursor-pointer hover:bg-slate-50/50 transition-colors"
                                         >
                                             <div className="flex items-center gap-4 flex-1">
@@ -356,14 +356,12 @@ export default function AreaDashboardPage({ params }: { params: Promise<{ id: st
                                                     {renderContentItem(theme, false, true)}
                                                 </div>
                                             </div>
-                                            {hasSubthemes && (
-                                                <span className={`material-symbols-rounded size-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 transition-all ${isExpanded ? 'rotate-180 text-primary' : ''}`}>
-                                                    expand_more
-                                                </span>
-                                            )}
+                                            <span className={`material-symbols-rounded size-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 transition-all ${isExpanded ? 'rotate-180 text-primary' : ''}`}>
+                                                expand_more
+                                            </span>
                                         </div>
 
-                                        {hasSubthemes && isExpanded && (
+                                        {isExpanded && (
                                             <div className="px-5 pb-5 pt-1 space-y-2.5 border-t border-slate-50 bg-slate-50/20">
                                                 {subthemes.map((sub, sidx) => (
                                                     <div key={sub.id} className="bg-white p-4 rounded-2xl border border-slate-100 flex items-center justify-between group/sub transition-all hover:shadow-md">

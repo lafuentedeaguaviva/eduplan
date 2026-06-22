@@ -25,7 +25,6 @@ export function useDesignController() {
     const [weekDesignState, setWeekDesignState] = useState<Record<string, Record<number, WeekDesign>>>({});
     const [weekPlanningIds, setWeekPlanningIds] = useState<Record<string, Record<number, string>>>({});
     const [objetivoNivel, setObjetivoNivel] = useState('');
-    const [finalProductState, setFinalProductState] = useState<Record<string, string>>({});
 
     /**
      * Limpia el estado de diseño por completo (al crear nuevo PDC)
@@ -37,7 +36,6 @@ export function useDesignController() {
         setWeekDesignState({});
         setWeekPlanningIds({});
         setObjetivoNivel('');
-        setFinalProductState({});
     };
 
     /**
@@ -49,7 +47,6 @@ export function useDesignController() {
         setWeekContentsMap(prev => { const n = {...prev}; delete n[areaId]; return n; });
         setWeekDesignState(prev => { const n = {...prev}; delete n[areaId]; return n; });
         setWeekPlanningIds(prev => { const n = {...prev}; delete n[areaId]; return n; });
-        setFinalProductState(prev => { const n = {...prev}; delete n[areaId]; return n; });
     };
 
     /**
@@ -60,7 +57,6 @@ export function useDesignController() {
     const getAreaWeekContents = (areaId: string) => weekContentsMap[areaId] || EMPTY_OBJECT;
     const getAreaWeekDesign = (areaId: string) => weekDesignState[areaId] || EMPTY_OBJECT;
     const getAreaPlanningIds = (areaId: string) => weekPlanningIds[areaId] || EMPTY_OBJECT;
-    const getAreaFinalProduct = (areaId: string) => finalProductState[areaId] || '';
 
     return {
         // Raw States (para el Context)
@@ -70,7 +66,6 @@ export function useDesignController() {
         weekDesignState, setWeekDesignState,
         weekPlanningIds, setWeekPlanningIds,
         objetivoNivel, setObjetivoNivel,
-        finalProductState, setFinalProductState,
 
         // Actions
         resetDesignState,
@@ -81,7 +76,6 @@ export function useDesignController() {
         getAreaObjectives,
         getAreaWeekContents,
         getAreaWeekDesign,
-        getAreaPlanningIds,
-        getAreaFinalProduct
+        getAreaPlanningIds
     };
 }

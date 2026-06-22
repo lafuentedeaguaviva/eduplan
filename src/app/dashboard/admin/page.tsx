@@ -8,10 +8,30 @@ import Link from 'next/link';
 import { useAdminController } from '@/hooks/useAdminController';
 import { AdminService } from '@/services/admin.service';
 
+import { useSearchParams, useRouter } from 'next/navigation';
+
 export default function AdminDashboardPage() {
+    return (
+        <React.Suspense fallback={<div className="p-20 text-center font-bold text-slate-500 animate-pulse tracking-widest uppercase">Cargando panel...</div>}>
+            <AdminDashboardContent />
+        </React.Suspense>
+    );
+}
+
+function AdminDashboardContent() {
     const { checkAccess } = useAdminController();
     const [stats, setStats] = React.useState<any>(null);
     const [loading, setLoading] = React.useState(true);
+    
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const [activeTab, setActiveTab] = React.useState<'system' | 'ai'>('system');
+
+    React.useEffect(() => {
+        const tab = searchParams?.get('tab');
+        if (tab === 'ai') setActiveTab('ai');
+        else setActiveTab('system');
+    }, [searchParams]);
 
     React.useEffect(() => {
         const init = async () => {
@@ -32,7 +52,7 @@ export default function AdminDashboardPage() {
         { label: 'Contenidos Base', value: '890', icon: 'menu_book', color: 'purple' }, // Static for now as it's not in the stats API yet
     ];
 
-    const adminModules = [
+    const systemModules = [
         {
             title: 'Gestión Curricular',
             description: 'Administra niveles, grados, áreas y contenidos base del sistema educativo.',
@@ -42,12 +62,12 @@ export default function AdminDashboardPage() {
             badge: 'Core'
         },
         {
-            title: 'Bibliotecas Pedagógicas',
-            description: 'Gestiona ejemplos de práctica, teoría, producción y valoración para el asistente IA.',
-            icon: 'library_books',
-            href: '/dashboard/admin/libraries',
-            color: 'indigo',
-            badge: 'IA Data'
+            title: 'Cronograma Global',
+            description: 'Configura las fechas, trimestres y la estructura de semanas para todo el sistema.',
+            icon: 'calendar_month',
+            href: '/dashboard/admin/schedule',
+            color: 'teal',
+            badge: 'Calendar'
         },
         {
             title: 'Geografía y Sedes',
@@ -64,8 +84,74 @@ export default function AdminDashboardPage() {
             href: '/dashboard/admin/users',
             color: 'orange',
             badge: 'Security'
+        },
+        {
+            title: 'Roles de Usuario',
+            description: 'Gestiona los niveles de acceso, descripciones de cargos y monitorea usuarios por cada rol.',
+            icon: 'badge',
+            href: '/dashboard/admin/roles',
+            color: 'rose',
+            badge: 'Access'
+        },
+        {
+            title: 'Biblioteca de Recursos',
+            description: 'Gestiona categorías y archivos descargables para docentes (PDCs, guías, normativas).',
+            icon: 'library_books',
+            href: '/dashboard/admin/resources',
+            color: 'indigo',
+            badge: 'Downloads'
+        },
+        {
+            title: 'Estadísticas del Sistema',
+            description: 'Visualiza métricas de adopción, generación de PDCs y crecimiento de usuarios.',
+            icon: 'query_stats',
+            href: '/dashboard/admin/statistics',
+            color: 'violet',
+            badge: 'Analytics'
         }
     ];
+
+    const aiModules = [
+        {
+            title: 'Bibliotecas Pedagógicas',
+            description: 'Gestiona ejemplos de práctica, teoría, producción y valoración para el asistente IA.',
+            icon: 'library_books',
+            href: '/dashboard/admin/libraries',
+            color: 'indigo',
+            badge: 'IA Data'
+        },
+        {
+            title: 'Configuración IA',
+            description: 'Modifica los prompts del sistema y controla qué variables de contexto se envían a la IA.',
+            icon: 'psychology',
+            href: '/dashboard/admin/ai-config',
+            color: 'cyan',
+            badge: 'Prompt Eng'
+        },
+        {
+            title: 'Consumo de IA',
+            description: 'Monitorea el uso de tokens de Gemini y DeepSeek, cuotas disponibles y top consumidores.',
+            icon: 'monitoring',
+            href: '/dashboard/admin/ai-usage',
+            color: 'cyan',
+            badge: 'AI Tokens'
+        },
+        {
+            title: 'Simulador de Prompts',
+            description: 'Visualiza y valida los prompts exactos y el payload de datos que se enviarán a la IA para un PDC.',
+            icon: 'science',
+            href: '/dashboard/admin/prompt-simulator',
+            color: 'fuchsia',
+            badge: 'Debugger'
+        }
+    ];
+
+    const currentModules = activeTab === 'system' ? systemModules : aiModules;
+
+    const changeTab = (tab: 'system' | 'ai') => {
+        setActiveTab(tab);
+        router.push(`/dashboard/admin?tab=${tab}`);
+    };
 
     return (
         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-1000">
@@ -85,7 +171,7 @@ export default function AdminDashboardPage() {
 
             {/* Stats Overview */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {(stats || statCards).map((stat: any, i: number) => (
+                {statCards.map((stat: any, i: number) => (
                     <Card key={i} className="p-6 border-none shadow-soft hover:shadow-medium transition-all group overflow-hidden relative">
                         <div className={`absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity transform group-hover:scale-110`}>
                             <span className="material-symbols-rounded text-6xl text-slate-900">{stat.icon}</span>
@@ -99,9 +185,27 @@ export default function AdminDashboardPage() {
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {adminModules.map((module, i) => (
-                    <Link key={i} href={module.href}>
+            {/* Tabs */}
+            <div className="flex p-1.5 bg-slate-100 rounded-2xl w-fit">
+                <button 
+                    onClick={() => changeTab('system')}
+                    className={`flex items-center gap-2 px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${activeTab === 'system' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                >
+                    <span className="material-symbols-rounded text-lg">admin_panel_settings</span>
+                    Sistema General
+                </button>
+                <button 
+                    onClick={() => changeTab('ai')}
+                    className={`flex items-center gap-2 px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${activeTab === 'ai' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                >
+                    <span className="material-symbols-rounded text-lg">psychology</span>
+                    Inteligencia Artificial
+                </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in slide-in-from-bottom-4 duration-500">
+                {currentModules.map((module, i) => (
+                    <Link key={`${activeTab}-${i}`} href={module.href}>
                         <Card className="p-8 border-none shadow-soft hover:shadow-premium transition-all duration-500 group cursor-pointer h-full relative overflow-hidden flex flex-col justify-between">
                             <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-bl-full -mr-8 -mt-8 group-hover:bg-blue-50 transition-colors duration-500" />
                             

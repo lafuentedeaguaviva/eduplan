@@ -1,3 +1,4 @@
+
 import { createClient } from '@/utils/supabase/server';
 
 /**
@@ -10,7 +11,7 @@ import { createClient } from '@/utils/supabase/server';
 export async function getDb() {
     // Inicializa el cliente de Supabase (Server Component)
     const supabase = await createClient();
-    
+
     return {
         /**
          * Obtiene un único registro de una tabla.
@@ -20,12 +21,12 @@ export async function getDb() {
          */
         async fetchSingle<T>(table: string, query: string, filter: Record<string, any>) {
             let request = supabase.from(table).select(query);
-            
+
             // Aplica los filtros dinámicamente
             for (const [key, value] of Object.entries(filter)) {
                 request = request.eq(key, value);
             }
-            
+
             const { data, error } = await request.single();
             if (error) {
                 console.error(`Error en fetchSingle (${table}):`, error.message, error.code, error.details);
@@ -33,7 +34,7 @@ export async function getDb() {
             }
             return data as unknown as T;
         },
-        
+
         /**
          * Obtiene múltiples registros de una tabla.
          * @param table Nombre de la tabla
@@ -42,11 +43,11 @@ export async function getDb() {
          */
         async fetchMany<T>(table: string, query: string, filter: Record<string, any>) {
             let request = supabase.from(table).select(query);
-            
+
             for (const [key, value] of Object.entries(filter)) {
                 request = request.eq(key, value);
             }
-            
+
             const { data, error } = await request;
             if (error) {
                 console.error(`Error en fetchMany (${table}):`, error);

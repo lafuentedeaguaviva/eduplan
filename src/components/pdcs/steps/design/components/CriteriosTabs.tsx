@@ -38,18 +38,27 @@ export const TAB_CONFIG: Record<EvaluacionTab, { label: string; icon: any; color
         bg: 'bg-amber-50'
     },
     adaptacion: {
-        label: 'ADAPTACIÓN',
-        description: 'Evaluación especial',
+        label: 'ADAPTACIÓN (S)',
+        description: 'Especiales / Significativas',
         icon: Accessibility,
         color: 'text-emerald-600',
         bg: 'bg-emerald-50'
+    },
+    adaptacion_no_sig: {
+        label: 'ADAPTACIÓN (NS)',
+        description: 'No Significativas',
+        icon: ChevronRight,
+        color: 'text-slate-600',
+        bg: 'bg-slate-100'
     }
 };
 
 export const CriteriosTabs: React.FC<CriteriosTabsProps> = ({ activeTab, onTabChange }) => {
     return (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-2">
-            {(Object.entries(TAB_CONFIG) as [EvaluacionTab, typeof TAB_CONFIG['ser']][]).map(([key, config]) => {
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 p-2">
+            {(Object.entries(TAB_CONFIG) as [EvaluacionTab, typeof TAB_CONFIG['ser']][])
+                .filter(([key]) => key !== 'adaptacion_no_sig' && key !== 'adaptacion')
+                .map(([key, config]) => {
                 const isActive = activeTab === key;
                 const Icon = config.icon;
                 

@@ -9,9 +9,9 @@ import { AiService } from "@/services/ai.service";
 export async function POST(req: Request) {
   try {
     const supabase = await createClient();
-    const { data: { session }, error: authError } = await supabase.auth.getSession();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (authError || !session) {
+    if (authError || !user) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
@@ -21,7 +21,7 @@ export async function POST(req: Request) {
     const { data: profile } = await supabase
         .from('perfiles')
         .select('gemini_api_key')
-        .eq('id', session.user.id)
+        .eq('id', user.id)
         .single();
     
     apiKey = profile?.gemini_api_key || process.env.GEMINI_API_KEY;
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     }
 
     // Ejecutar generación usando exclusivamente la API Key
-    const text = await AiService.generate(session.user.id, { apiKey }, prompt, context, supabase);
+    const text = await AiService.generate(user.id, { apiKey }, prompt, context, supabase);
 
     return NextResponse.json({ text });
   } catch (error: any) {

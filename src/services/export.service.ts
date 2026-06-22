@@ -16,6 +16,21 @@ export const ExportService = {
         const pdcNumero = pdcData.mes || 1;
 
         const doc = new Document({
+            styles: {
+                default: {
+                    document: {
+                        run: {
+                            size: 22,
+                            characterSpacing: 10,
+                        },
+                        paragraph: {
+                            spacing: {
+                                line: 360,
+                            },
+                        },
+                    },
+                },
+            },
             sections: [
                 {
                     properties: {
@@ -153,7 +168,7 @@ export const ExportService = {
                                         children: [
                                             new TableCell({ 
                                                 verticalMerge: idx === 0 ? VerticalMergeType.RESTART : VerticalMergeType.CONTINUE,
-                                                children: idx === 0 ? [new Paragraph({ text: area.objetivos_aprendizaje, alignment: AlignmentType.BOTH })] : []
+                                                children: idx === 0 ? [new Paragraph({ text: (() => { const t = area.objetivos_aprendizaje_ia || area.objetivos_aprendizaje || ""; return t ? t.replace(/^([^a-zA-ZáéíóúÁÉÍÓÚñÑüÜ]*)([a-zA-ZáéíóúÁÉÍÓÚñÑüÜ])/, (m, p, l) => p + l.toUpperCase()) : ""; })(), alignment: AlignmentType.BOTH })] : []
                                             }),
                                             new TableCell({ 
                                                 children: [
@@ -166,12 +181,12 @@ export const ExportService = {
                                                     ])
                                                 ]
                                             }),
-                                            new TableCell({ children: [new Paragraph(s.momentos_ia || "N/A")] }),
-                                            new TableCell({ children: [new Paragraph(s.recursos_fuentes_ia || "N/A")] }),
-                                            new TableCell({ children: [new Paragraph(area.periodos?.toString() || "0"), new Paragraph("hrs")], verticalAlign: VerticalAlign.CENTER }),
+                                            new TableCell({ children: [new Paragraph(s.momentos_ia || s.momentos_original || "N/A")] }),
+                                            new TableCell({ children: [new Paragraph(s.recursos_fuentes_ia || s.recursos_fuentes_original || "N/A")] }),
+                                            new TableCell({ children: [new Paragraph({ text: area.periodo_semanal?.toString() || "0", alignment: AlignmentType.CENTER }), new Paragraph({ text: "hrs", alignment: AlignmentType.CENTER })], verticalAlign: VerticalAlign.CENTER }),
                                             new TableCell({ 
                                                 verticalMerge: idx === 0 ? VerticalMergeType.RESTART : VerticalMergeType.CONTINUE,
-                                                children: idx === 0 ? [new Paragraph({ text: area.criterios_evaluacion, alignment: AlignmentType.BOTH })] : []
+                                                children: idx === 0 ? [new Paragraph({ text: area.criterios_evaluacion_ia || area.criterios_evaluacion, alignment: AlignmentType.BOTH })] : []
                                             }),
                                         ]
                                     })),
@@ -182,7 +197,7 @@ export const ExportService = {
                                                 columnSpan: 4, 
                                                 children: [
                                                     new Paragraph({ children: [new TextRun({ text: "ADAPTACIONES CURRICULARES NO SIGNIFICATIVAS", bold: true })], spacing: { before: 100 } }),
-                                                    new Paragraph(area.adaptaciones_no_significativas || 'Ninguna')
+                                                    new Paragraph(area.adaptaciones_no_significativas_ia || area.adaptaciones_no_significativas || 'Ninguna')
                                                 ] 
                                             }),
                                             new TableCell({ verticalMerge: VerticalMergeType.CONTINUE, children: [] }),
@@ -197,7 +212,7 @@ export const ExportService = {
                                                     new Paragraph({ children: [new TextRun({ text: "ADAPTACIONES CURRICULARES SIGNIFICATIVAS / CRITERIOS", bold: true })], spacing: { before: 100 } }),
                                                     new Paragraph(area.adaptaciones_especiales_ia || 'Ninguna'),
                                                     new Paragraph({ children: [new TextRun({ text: "Criterios:", bold: true })] }),
-                                                    new Paragraph(area.criterios_evaluacion_adaptaciones || 'No definido')
+                                                    new Paragraph(area.criterios_evaluacion_adaptaciones_ia || area.criterios_evaluacion_adaptaciones || 'No definido')
                                                 ] 
                                             }),
                                             new TableCell({ verticalMerge: VerticalMergeType.CONTINUE, children: [] }),
@@ -249,6 +264,60 @@ export const ExportService = {
         const input = document.getElementById(elementId);
         if (!input) return;
 
+        // --- PAGE BREAK LOGIC ---
+        const mX = 15; // 15mm margin
+        const mY = 15; // 15mm margin
+        const tempPdf = new jsPDF(orientation, 'mm', 'a4');
+        const pdfWidthInitial = tempPdf.internal.pageSize.getWidth() - (mX * 2);
+        const pdfHeightInitial = tempPdf.internal.pageSize.getHeight() - (mY * 2);
+        
+        // Calculate DOM height corresponding to one PDF page
+        const domPageHeight = pdfHeightInitial * (input.offsetWidth / pdfWidthInitial);
+
+        const breakableElements = Array.from(input.querySelectorAll('tr, h1, h2, h3, h4, p, li, .avoid-break, .force-page-break')) as HTMLElement[];
+        const modifications: { el: HTMLElement, origMarginTop: string }[] = [];
+        const addedSpacers: HTMLElement[] = [];
+
+        for (const el of breakableElements) {
+            const rect = el.getBoundingClientRect();
+            const inputRect = input.getBoundingClientRect();
+            
+            const top = rect.top - inputRect.top;
+            const bottom = top + rect.height;
+
+            const pageNumTop = Math.floor(top / domPageHeight);
+            const pageNumBottom = Math.floor(bottom / domPageHeight);
+            
+            const isForceBreak = el.classList.contains('force-page-break');
+            const isAtTopOfPage = (top % domPageHeight) < 10; // within 10px of the top
+
+            // If element crosses page boundary or requires a force break
+            if ((isForceBreak && !isAtTopOfPage) || (pageNumTop !== pageNumBottom && rect.height < domPageHeight)) {
+                const pushAmount = ((pageNumTop + 1) * domPageHeight) - top;
+                
+                if (el.tagName.toLowerCase() === 'tr') {
+                    const spacer = document.createElement('tr');
+                    const td = document.createElement('td');
+                    td.colSpan = 99;
+                    td.style.height = `${pushAmount}px`;
+                    td.style.border = 'none';
+                    td.style.padding = '0';
+                    spacer.appendChild(td);
+                    el.parentNode?.insertBefore(spacer, el);
+                    addedSpacers.push(spacer);
+                } else {
+                    const spacer = document.createElement('div');
+                    spacer.style.borderTop = `${pushAmount}px solid transparent`;
+                    spacer.style.margin = '0';
+                    spacer.style.padding = '0';
+                    spacer.className = 'pdf-block-spacer';
+                    el.parentNode?.insertBefore(spacer, el);
+                    addedSpacers.push(spacer);
+                }
+            }
+        }
+        // --- END PAGE BREAK LOGIC ---
+
         const canvas = await html2canvas(input, {
             scale: 2,
             useCORS: true,
@@ -256,25 +325,56 @@ export const ExportService = {
             backgroundColor: '#ffffff'
         });
 
+        // Revert modifications
+        modifications.forEach(({ el, origMarginTop }) => {
+            el.style.marginTop = origMarginTop;
+        });
+        addedSpacers.forEach(spacer => spacer.remove());
+
         const imgData = canvas.toDataURL('image/png');
         const pdf = new jsPDF(orientation, 'mm', 'a4');
         const imgProps = pdf.getImageProperties(imgData);
+        
+        // Layout image on PDF
         const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
         const pageHeight = pdf.internal.pageSize.getHeight();
+        
+        const imgWidth = pdfWidth - (mX * 2);
+        const imgHeight = (imgProps.height * imgWidth) / imgProps.width;
 
-        if (pdfHeight > pageHeight) {
-            let heightLeft = pdfHeight;
+        // Check if content exceeds page height minus margins
+        if (imgHeight > (pageHeight - mY * 2)) {
+            let heightLeft = imgHeight;
             let position = 0;
 
-            while (heightLeft >= 0) {
-                pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
-                heightLeft -= pageHeight;
-                position -= pageHeight;
-                if (heightLeft > 0) pdf.addPage();
+            pdf.addImage(imgData, 'PNG', mX, mY, imgWidth, imgHeight);
+            heightLeft -= (pageHeight - mY * 2);
+
+            // Hide bottom margin
+            if (heightLeft > 0) {
+                pdf.setFillColor(255, 255, 255);
+                pdf.rect(0, pageHeight - mY, pdfWidth, mY, 'F');
+            }
+
+            while (heightLeft > 0) {
+                position -= (pageHeight - mY * 2);
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', mX, position + mY, imgWidth, imgHeight);
+                
+                // Hide top margin
+                pdf.setFillColor(255, 255, 255);
+                pdf.rect(0, 0, pdfWidth, mY, 'F');
+                
+                heightLeft -= (pageHeight - mY * 2);
+                
+                // Hide bottom margin
+                if (heightLeft > 0) {
+                    pdf.setFillColor(255, 255, 255);
+                    pdf.rect(0, pageHeight - mY, pdfWidth, mY, 'F');
+                }
             }
         } else {
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.addImage(imgData, 'PNG', mX, mY, imgWidth, imgHeight);
         }
 
         pdf.save(`${fileName}.pdf`);

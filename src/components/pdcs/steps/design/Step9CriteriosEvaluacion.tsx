@@ -43,8 +43,16 @@ export const Step9CriteriosEvaluacion: React.FC = () => {
         // Handlers
         handlePushToEditor,
         handleSaveSer, handleSaveSaber, handleSaveHacer, handleSaveAdaptacion,
-        handleDeleteSer, handleDeleteSaber, handleDeleteHacer, handleDeleteAdaptacion
+        handleDeleteSer, handleDeleteSaber, handleDeleteHacer, handleDeleteAdaptacion,
+        adaptacionNoSig, setAdaptacionNoSig, handleSaveAdaptacionNoSig
     } = useCriteriosEvaluacion();
+
+    // Local draft state to prevent input lag
+    const [localAdaptacionNoSig, setLocalAdaptacionNoSig] = React.useState(adaptacionNoSig || '');
+
+    React.useEffect(() => {
+        setLocalAdaptacionNoSig(adaptacionNoSig || '');
+    }, [adaptacionNoSig]);
 
     // Auto-seleccionar ítem de adaptación al elegir el nombre (Nivel 2) para mostrar Ficha Técnica
     React.useEffect(() => {
@@ -80,6 +88,11 @@ export const Step9CriteriosEvaluacion: React.FC = () => {
                 lib: libAdaptacion, saved: savedAdaptacion, filters: filtersAdaptacion, setFilters: setFiltersAdaptacion,
                 data1: availableCondicionesAdapt, data2: availableNombresAdapt, data3: filteredNombresAdapt,
                 editing: editingAdaptacion, setEditing: setEditingAdaptacion, onSave: handleSaveAdaptacion, onDelete: handleDeleteAdaptacion
+            };
+            case 'adaptacion_no_sig': return {
+                lib: [], saved: [], filters: {}, setFilters: () => {},
+                data1: [], data2: [], data3: [],
+                editing: {}, setEditing: () => {}, onSave: () => {}, onDelete: () => {}
             };
         }
     };
@@ -120,83 +133,130 @@ export const Step9CriteriosEvaluacion: React.FC = () => {
                 {/* Workspace */}
                 <div className="p-8 flex-1 relative flex flex-col space-y-8">
 
-                    {/* Biblioteca Selector */}
-                    <div className="bg-white rounded-[2.5rem] border border-slate-200/60 shadow-xl shadow-slate-200/10 p-8 relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:scale-110 transition-transform duration-700">
-                            <Library className="w-32 h-32 text-slate-900" />
-                        </div>
-                        <div className="flex items-center gap-4 mb-8 relative z-10">
-                            <div className="size-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm border border-white">
-                                <Library className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em] leading-none">Biblioteca de Criterios</h3>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 opacity-60">Explora y selecciona</p>
-                            </div>
-                        </div>
-                        <div className="relative z-10">
-                            <CriteriosSelector
-                                tab={activeTab}
-                                filters={tabData.filters}
-                                setFilters={tabData.setFilters}
-                                data1={tabData.data1}
-                                data2={tabData.data2}
-                                data3={tabData.data3}
-                                onSelectItem={setSelectedLibItem}
-                            />
-                        </div>
-                    </div>
-
-                    {/* 3-Column Workspace */}
-                    <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8">
-
-                        {/* Column 1: Detalle */}
-                        <div className="lg:col-span-3">
-                            <CriteriosItemDetail
-                                tab={activeTab}
-                                item={selectedLibItem}
-                                onPush={handlePushToEditor}
-                                selectedType={selectedType ?? undefined}
-                            />
-                        </div>
-
-                        {/* Column 2: Editor */}
-                        <div className="lg:col-span-5">
-                            <CriteriosEditor
-                                tab={activeTab}
-                                editingItem={tabData.editing}
-                                setEditingItem={tabData.setEditing}
-                                onSave={tabData.onSave}
-                                isSaving={isSaving}
-                            />
-                        </div>
-
-                        {/* Column 3: Lista de Guardados */}
-                        <div className="lg:col-span-4">
-                            <div className="bg-white/60 backdrop-blur-sm rounded-[3rem] border border-slate-200/60 shadow-xl shadow-slate-200/5 p-8 h-full flex flex-col">
-                                <div className="flex items-center justify-between mb-8 shrink-0">
-                                    <div className="flex items-center gap-3">
-                                        <div className="size-9 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-md">
-                                            <ClipboardCheck className="w-5 h-5" />
-                                        </div>
-                                        <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em]">Criterios Guardados</h3>
+                    {activeTab === 'adaptacion_no_sig' ? (
+                        <div className="flex-1 flex flex-col space-y-6 animate-in fade-in zoom-in-95 duration-500">
+                            <div className="bg-white rounded-[3rem] border border-slate-200/60 shadow-xl shadow-slate-200/10 p-12 flex flex-col flex-1 gap-8">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-2">
+                                        <h3 className="text-2xl font-black text-slate-900 tracking-tighter uppercase">Adaptaciones No Significativas (Área)</h3>
+                                        <p className="text-slate-500 font-bold text-sm">Estas adaptaciones se aplican de forma general a nivel del área de conocimiento.</p>
                                     </div>
-                                    <div className="bg-slate-100/80 px-4 py-1.5 rounded-full text-[10px] font-black text-slate-500 border border-slate-200/50 shadow-inner">
-                                        TOTAL: {tabData.saved.length}
+                                    <Badge className="bg-slate-900 text-white px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest">Global</Badge>
+                                </div>
+
+                                <textarea
+                                    value={localAdaptacionNoSig}
+                                    onChange={(e) => setLocalAdaptacionNoSig(e.target.value)}
+                                    placeholder="Describe las adaptaciones curriculares no significativas para este área (ej: ajustes en tiempos, metodología, recursos generales)..."
+                                    className="flex-1 w-full bg-slate-50/50 border-2 border-slate-100 focus:border-slate-400 focus:bg-white rounded-[2.5rem] p-10 text-lg font-bold text-slate-700 transition-all outline-none shadow-inner resize-none leading-relaxed placeholder:text-slate-300 min-h-[300px]"
+                                />
+
+                                <div className="flex items-center justify-between pt-4">
+                                    <div className="flex items-center gap-4 text-slate-400">
+                                        <div className="size-10 rounded-2xl bg-slate-50 flex items-center justify-center border border-slate-100">
+                                            <ShieldCheck className="w-5 h-5 text-slate-300" />
+                                        </div>
+                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 max-w-[300px] leading-tight">
+                                            Este campo se sincroniza con el reporte final y la optimización de IA.
+                                        </span>
+                                    </div>
+                                    
+                                    <button
+                                        onClick={() => handleSaveAdaptacionNoSig(localAdaptacionNoSig)}
+                                        disabled={isSaving}
+                                        className="bg-slate-900 text-white px-12 py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-2xl shadow-slate-900/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-4 disabled:opacity-50"
+                                    >
+                                        {isSaving ? (
+                                            <div className="size-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        ) : (
+                                            <ShieldCheck className="w-4 h-4" />
+                                        )}
+                                        {isSaving ? 'Guardando...' : 'Guardar Adaptación'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            {/* Biblioteca Selector */}
+                            <div className="bg-white rounded-[2.5rem] border border-slate-200/60 shadow-xl shadow-slate-200/10 p-8 relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:scale-110 transition-transform duration-700">
+                                    <Library className="w-32 h-32 text-slate-900" />
+                                </div>
+                                <div className="flex items-center gap-4 mb-8 relative z-10">
+                                    <div className="size-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm border border-white">
+                                        <Library className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em] leading-none">Biblioteca de Criterios</h3>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 opacity-60">Explora y selecciona</p>
                                     </div>
                                 </div>
-                                <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-                                    <CriteriosSavedList
+                                <div className="relative z-10">
+                                    <CriteriosSelector
                                         tab={activeTab}
-                                        items={tabData.saved}
-                                        onEdit={tabData.setEditing}
-                                        onDelete={tabData.onDelete}
+                                        filters={tabData.filters}
+                                        setFilters={tabData.setFilters}
+                                        data1={tabData.data1}
+                                        data2={tabData.data2}
+                                        data3={tabData.data3}
+                                        onSelectItem={setSelectedLibItem}
                                     />
                                 </div>
                             </div>
-                        </div>
 
-                    </div>
+                            {/* 3-Column Workspace */}
+                            <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+                                {/* Column 1: Detalle */}
+                                <div className="lg:col-span-3">
+                                    <CriteriosItemDetail
+                                        tab={activeTab}
+                                        item={selectedLibItem}
+                                        onPush={handlePushToEditor}
+                                        selectedType={selectedType ?? undefined}
+                                    />
+                                </div>
+
+                                {/* Column 2: Editor */}
+                                <div className="lg:col-span-5">
+                                    <CriteriosEditor
+                                        tab={activeTab}
+                                        editingItem={tabData.editing}
+                                        setEditingItem={tabData.setEditing}
+                                        onSave={tabData.onSave}
+                                        isSaving={isSaving}
+                                    />
+                                </div>
+
+                                {/* Column 3: Lista de Guardados */}
+                                <div className="lg:col-span-4">
+                                    <div className="bg-white/60 backdrop-blur-sm rounded-[3rem] border border-slate-200/60 shadow-xl shadow-slate-200/5 p-8 h-full flex flex-col">
+                                        <div className="flex items-center justify-between mb-8 shrink-0">
+                                            <div className="flex items-center gap-3">
+                                                <div className="size-9 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-md">
+                                                    <ClipboardCheck className="w-5 h-5" />
+                                                </div>
+                                                <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em]">Criterios Guardados</h3>
+                                            </div>
+                                            <div className="bg-slate-100/80 px-4 py-1.5 rounded-full text-[10px] font-black text-slate-500 border border-slate-200/50 shadow-inner">
+                                                TOTAL: {tabData.saved.length}
+                                            </div>
+                                        </div>
+                                        <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                                            <CriteriosSavedList
+                                                tab={activeTab}
+                                                items={tabData.saved}
+                                                onEdit={tabData.setEditing}
+                                                onDelete={tabData.onDelete}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </>
+                    )}
                 </div>
 
                 {/* Footer */}

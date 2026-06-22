@@ -32,19 +32,19 @@ export function InstitutionalStats({
     return (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Main Progress Hub */}
-            <Card className="lg:col-span-4 p-8 border-none shadow-premium bg-slate-900 text-white flex flex-col items-center justify-center relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:rotate-12 transition-transform duration-700">
+            <Card className="lg:col-span-4 p-8 border-none shadow-premium bg-white text-slate-900 flex flex-col items-center justify-center relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:rotate-12 transition-transform duration-700">
                     <span className="material-symbols-rounded text-9xl">analytics</span>
                 </div>
 
                 <div className="relative size-48">
                     {/* Background Tracks */}
                     <svg className="size-full -rotate-90">
-                        <circle stroke="rgba(255,255,255,0.05)" strokeWidth="8" fill="transparent" r={radius} cx="96" cy="96" />
+                        <circle stroke="rgba(0,0,0,0.05)" strokeWidth="8" fill="transparent" r={radius} cx="96" cy="96" />
                         
                         {/* Planning Track (Outer) */}
                         <circle 
-                            stroke="rgba(59, 130, 246, 0.3)" 
+                            stroke="rgba(59, 130, 246, 0.2)" 
                             strokeWidth="10" 
                             strokeDasharray={circumference} 
                             strokeDashoffset={planningOffset} 
@@ -69,19 +69,19 @@ export function InstitutionalStats({
 
                     <div className="absolute inset-0 flex flex-col items-center justify-center space-y-0">
                          <span className="text-4xl font-black">{executionRate}%</span>
-                         <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Ejecución</span>
+                         <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Ejecución</span>
                     </div>
                 </div>
 
                 <div className="mt-8 flex gap-8">
                     <div className="text-center">
-                        <p className="text-2xl font-black text-blue-400">{planningRate}%</p>
-                        <p className="text-[9px] font-bold uppercase tracking-widest opacity-50">Planificado</p>
+                        <p className="text-2xl font-black text-blue-600">{planningRate}%</p>
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Planificado</p>
                     </div>
-                    <div className="h-10 w-px bg-white/10" />
+                    <div className="h-10 w-px bg-slate-100" />
                     <div className="text-center">
-                        <p className="text-2xl font-black text-emerald-400">{executionRate}%</p>
-                        <p className="text-[9px] font-bold uppercase tracking-widest opacity-50">Ejecutado</p>
+                        <p className="text-2xl font-black text-emerald-600">{executionRate}%</p>
+                        <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400">Ejecutado</p>
                     </div>
                 </div>
             </Card>

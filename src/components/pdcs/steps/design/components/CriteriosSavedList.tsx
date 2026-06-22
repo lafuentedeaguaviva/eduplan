@@ -64,7 +64,7 @@ export const CriteriosSavedList: React.FC<CriteriosSavedListProps> = ({ tab, ite
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-2 shrink-0 opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 transition-all duration-300">
+                        <div className="flex items-center gap-2 shrink-0 transition-all duration-300">
                             <button
                                 onClick={() => onEdit(item)}
                                 className="size-10 rounded-xl bg-slate-50 text-slate-400 hover:bg-slate-900 hover:text-white transition-all active:scale-95 flex items-center justify-center shadow-sm"

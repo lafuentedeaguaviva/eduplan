@@ -6,14 +6,19 @@
  */
 
 import { supabase } from '@/lib/supabase';
-import { ServiceResponse, TheoryLibraryItem } from '@/types';
+import { ServiceResponse, TeoriaLibraryItem } from '@/types';
+
+let libraryCache: TeoriaLibraryItem[] | null = null;
 
 export const TheoryService = {
     /**
      * Obtiene todos los ítems de la biblioteca de teoría.
-     * @returns {Promise<ServiceResponse<TheoryLibraryItem[]>>} Lista de estrategias teóricas.
+     * @returns {Promise<ServiceResponse<TeoriaLibraryItem[]>>} Lista de estrategias teóricas.
      */
-    async getLibrary(): Promise<ServiceResponse<TheoryLibraryItem[]>> {
+    async getLibrary(): Promise<ServiceResponse<TeoriaLibraryItem[]>> {
+        if (libraryCache) {
+            return { data: libraryCache, error: null, success: true };
+        }
         const { data, error } = await supabase
             .from('biblioteca_teoria')
             .select('*')
@@ -23,8 +28,12 @@ export const TheoryService = {
             console.error('TheoryService Error [getLibrary]:', error);
         }
 
+        if (!error && data) {
+            libraryCache = data as TeoriaLibraryItem[];
+        }
+
         return {
-            data: data as TheoryLibraryItem[],
+            data: data as TeoriaLibraryItem[],
             error,
             success: !error
         };
@@ -34,7 +43,7 @@ export const TheoryService = {
      * Busca estrategias teóricas por nombre o propósito.
      * @param {string} query - Término de búsqueda.
      */
-    async searchLibrary(query: string): Promise<ServiceResponse<TheoryLibraryItem[]>> {
+    async searchLibrary(query: string): Promise<ServiceResponse<TeoriaLibraryItem[]>> {
         const { data, error } = await supabase
             .from('biblioteca_teoria')
             .select('*')
@@ -42,7 +51,7 @@ export const TheoryService = {
             .order('nombre_estrategia_teorica', { ascending: true });
 
         return {
-            data: data as TheoryLibraryItem[],
+            data: data as TeoriaLibraryItem[],
             error,
             success: !error
         };

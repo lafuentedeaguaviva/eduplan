@@ -1,15 +1,25 @@
 import { supabase } from '@/lib/supabase';
 import { AdaptacionBasicaLibraryItem, AdaptacionBasicaItem, ServiceResponse } from '@/types';
 
+let libraryCache: AdaptacionBasicaLibraryItem[] | null = null;
+
 export const AdaptacionesService = {
     /**
      * Obtiene todos los items de biblioteca_adaptaciones_basicas.
      */
     async getLibrary(): Promise<ServiceResponse<AdaptacionBasicaLibraryItem[]>> {
+        if (libraryCache) {
+            return { data: libraryCache, error: null, success: true };
+        }
         const { data, error } = await supabase
             .from('biblioteca_adaptaciones_basicas')
             .select('*')
             .order('tipo', { ascending: true });
+
+        if (!error && data) {
+            libraryCache = data as AdaptacionBasicaLibraryItem[];
+        }
+
         return { data, error, success: !error };
     },
 

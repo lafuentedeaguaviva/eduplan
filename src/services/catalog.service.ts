@@ -7,6 +7,9 @@ import { ServiceResponse } from '@/types';
  * Proporciona acceso a catálogos estáticos y dinámicos del sistema,
  * como niveles, grados, áreas, turnos, paralelos y geografía (deptos/distritos).
  */
+let verbosCache: any[] | null = null;
+let complementosCache: any[] | null = null;
+
 export const CatalogService = {
     /**
      * Obtiene la lista de niveles educativos.
@@ -94,20 +97,34 @@ export const CatalogService = {
     },
 
     async getVerbos(): Promise<ServiceResponse<any[]>> {
+        if (verbosCache) {
+            return { data: verbosCache, error: null, success: true };
+        }
         const { data, error } = await supabase
             .from('catalogo_verbos')
             .select('*')
             .order('tipo_verbo_id')
             .order('verbo');
+        
+        if (!error && data) {
+            verbosCache = data;
+        }
         return { data: data || [], error, success: !error };
     },
 
     async getComplementos(): Promise<ServiceResponse<any[]>> {
+        if (complementosCache) {
+            return { data: complementosCache, error: null, success: true };
+        }
         const { data, error } = await supabase
             .from('catalogo_complementos')
             .select('*')
             .order('tipo_complemento_id')
             .order('complemento');
+        
+        if (!error && data) {
+            complementosCache = data;
+        }
         return { data: data || [], error, success: !error };
     },
 

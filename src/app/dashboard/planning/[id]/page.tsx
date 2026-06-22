@@ -198,12 +198,14 @@ function PlanningContent({ id }: { id: string }) {
             )}
 
             <AlertDialog
-                isOpen={feedback.isOpen && !feedback.isConfirm}
+                isOpen={feedback.isOpen}
                 onClose={hideFeedback}
+                onConfirm={feedback.onConfirm || hideFeedback}
                 title={feedback.title}
                 description={feedback.description}
-                confirmText="Entendido"
-                variant={feedback.type === 'error' ? 'danger' : 'info'}
+                confirmText={feedback.confirmText || 'Entendido'}
+                cancelText={feedback.isConfirm ? (feedback.cancelText || 'Cancelar') : undefined}
+                variant={feedback.type === 'error' ? 'danger' : feedback.type === 'warning' ? 'warning' : 'info'}
             />
         </div>
     );

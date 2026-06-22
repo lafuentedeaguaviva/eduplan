@@ -38,7 +38,7 @@ export default function PDFPreview({ pdc, data, id }: PDFPreviewProps) {
                     {data.niveles || "EDUCACIÓN COMUNITARIA VOCACIONAL"}
                 </p>
                 <h1 style={{ fontSize: '14px', fontWeight: 'bold' }}>
-                    PLAN DE DESARROLLO CURRICULAR Nº {pdc.mes || 1}
+                    PLAN DE DESARROLLO CURRICULAR - MES {pdc.mes || 1}
                 </h1>
             </div>
 

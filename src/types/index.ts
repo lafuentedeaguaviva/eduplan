@@ -1,5 +1,5 @@
 /**
- * Domain Models & Types
+ * Domain Models & Types - EduPlan Pro
  * Prime Directive: Atomic, explicable and non-destructive.
  */
 
@@ -16,6 +16,7 @@ export interface Profile {
     nombres: string;
     apellidos: string;
     email: string;
+    nombre_completo?: string;
     rol?: string;
     titulo?: string;
     created_at?: string;
@@ -23,7 +24,15 @@ export interface Profile {
 
 export type PdcProfile = Profile;
 
-// --- Areas & Infrastructure ---
+export interface UserProfile {
+    id: string;
+    email: string;
+    nombre_completo: string;
+    roles?: string[];
+    unidad_educativa_id?: number;
+}
+
+// --- Infrastructure ---
 
 export interface UnidadEducativa {
     id: number;
@@ -53,21 +62,35 @@ export interface AreaTrabajo {
     unidad_educativa_id?: number;
     area_conocimiento_id?: number;
     turno_id?: string;
-    pdc_area_trabajo_id?: string | null; // Relación 1:1 con su instancia de diseño
+    pdc_area_trabajo_id?: string | null;
+    director_id?: string | null;
     unidad_educativa: UnidadEducativa;
     area_conocimiento: AreaConocimiento;
     turno: { id: string; nombre: string; };
     paralelos: { id: string; nombre: string; }[];
+    director?: Profile;
     created_at?: string;
 }
 
-// --- Library & Content ---
+// --- Content & Curriculum ---
+
+export interface PlanificacionGeneral {
+    id: number;
+    gestion: number;
+    trimestre: number;
+    mes: number;
+    semana: number;
+    fecha_inicio_trimestre: string;
+    fecha_fin_trimestre: string;
+    fecha_inicio_mes?: string;
+    fecha_fin_mes?: string;
+    fecha_inicio_semana?: string;
+    fecha_fin_semana?: string;
+}
 
 export interface ContentItem {
-    /** ID único (64-bit) */
     id: number;
     titulo: string;
-    /** ID del padre (64-bit) */
     padre_id?: number | null;
     orden: number;
     descripcion?: string;
@@ -77,12 +100,9 @@ export interface ContentItem {
 }
 
 export interface UserContent {
-    /** ID único (64-bit) */
     id: number;
     area_trabajo_id?: string;
-    /** ID del contenido base (64-bit) */
     origen_base_id?: number | null;
-    /** ID del padre (64-bit) */
     padre_id?: number | null;
     titulo: string;
     orden: number;
@@ -92,29 +112,7 @@ export interface UserContent {
     updated_at?: string;
 }
 
-
-// --- PDC & Planning ---
-
-export interface PlanificacionGeneral {
-    id: number;
-    gestion: number;
-    trimestre: number;
-    mes: number; // 1-3
-    semana: number;
-    fecha_inicio_trimestre: string;
-    fecha_fin_trimestre: string;
-}
-
-export interface SemanaContenido {
-    id: string;
-    planificacion_semanal_id?: string;
-    /** Referencia a contenido_usuario (64-bit) */
-    contenido_usuario_id: number;
-    orden: number;
-    observaciones?: string;
-    estado: string;
-    contenido_usuario?: UserContent;
-}
+// --- Planning ---
 
 export interface PlanificacionSemanal {
     id: string;
@@ -125,23 +123,45 @@ export interface PlanificacionSemanal {
     semana: number;
     fecha_inicio_trimestre: string;
     fecha_fin_trimestre: string;
+    fecha_inicio_mes?: string;
+    fecha_fin_mes?: string;
+    fecha_inicio_semana?: string;
+    fecha_fin_semana?: string;
     observaciones_generales?: string;
+    objetivos_aprendizaje?: string;
+    objetivos_aprendizaje_ia?: string;
     momentos_ia?: string;
+    momentos_original?: string;
     recursos_fuentes_ia?: string;
+    recursos_fuentes_original?: string;
     adaptaciones_basicas_ia?: string;
+    adaptaciones_basicas_original?: string;
     adaptaciones_especiales_ia?: string;
-    momentos?: any[];
-    recursos?: any[];
-    fuentes?: any[];
-    semana_contenido?: SemanaContenido[];
-    semana_contenido_hier?: HierarchyRoot[]; // For reports
-    adaptaciones_basicas?: any[];
+    adaptaciones_especiales_original?: string;
+    momentos?: string | any[];
+    recursos_fuentes?: string | any[];
+    adaptaciones_basicas?: string | any[];
+    adaptaciones_especiales?: string | any[];
+    momentos_json?: any[];
+    recursos_json?: any[];
+    fuentes_json?: any[];
+    adaptaciones_json?: any[];
     adaptacion_especial?: any[];
+    semana_contenido?: SemanaContenido[];
+    semana_contenido_hier?: HierarchyRoot[];
+    consolidado?: number;
     created_at?: string;
     updated_at?: string;
 }
 
-// --- Nueva Estructura PDC (Maestra) ---
+export interface SemanaContenido {
+    id: string;
+    planificacion_semanal_id?: string;
+    contenido_usuario_id: number;
+    orden: number;
+    estado: string;
+    contenido_usuario?: UserContent;
+}
 
 export interface PDCMaster {
     id: string;
@@ -156,73 +176,46 @@ export interface PDCMaster {
     mes?: number;
     fecha_inicio?: string;
     fecha_fin?: string;
+    producto_final?: string;
     periodo_semanal?: number;
     escritura_tipo_ia?: string;
     correccion_profundidad_ia?: string;
     evaluacion_tipo_ia?: string;
+    ia_habilitado?: number;
     created_at?: string;
     updated_at?: string;
     areas_trabajo?: AreaTrabajo[];
 }
 
-export interface PDCAreaTrabajo {
-    id: string;
-    pdc_id: string;
-    periodo_semanal?: number;
-    criterios_evaluacion_ia?: string;
-    adaptaciones_no_significativas_ia?: string;
-    criterios_evaluacion_adaptaciones_ia?: string;
-    criterios_evaluacion?: any[];
-    criterio_adptacion_evaluacion?: any[];
-    created_at?: string;
-    updated_at?: string;
-    areas_trabajo?: AreaTrabajo;
+export interface TipoFuente {
+    id_tipo_fuente: number;
+    tipo_fuente: string;
+    descripcion?: string | null;
 }
 
 export type PDC = PDCMaster;
-export type Pdc = PDC;
+export type Pdc = PDCMaster;
 
-// --- PDC Wizard & Design Structs ---
+// --- Wizard Catalog ---
 
 export interface CatalogoVerbo {
     id: number;
     verbo: string;
     tipo_verbo_id: number;
+    detalle_tipo?: string;
     dominio?: string;
     nivel_profundidad?: string;
     niveles_educativos?: string[];
     descripcion?: string;
-    ejemplo_indicativo?: string;
 }
 
 export interface CatalogoComplemento {
     id: number;
     complemento: string;
     tipo_complemento_id: number | null;
-    detalle_tipo?: string | null;
-    descripcion?: string | null;
     categoria: string | null;
     subcategoria: string | null;
     niveles_sugeridos: string[];
-    ejemplo_uso?: string | null;
-}
-
-export interface TheoryLibraryItem {
-    id_teoria: number | string;
-    codigo_biblioteca_teoria?: string;
-    nombre_estrategia_teorica: string;
-    proposito?: string;
-    tipo?: string;
-    apto_para?: string;
-    descripcion_concreta?: string;
-    redactado?: string;
-    redactado_ia?: string;
-    ejemplo_inicial?: string;
-    ejemplo_primaria?: string;
-    ejemplo_secundaria?: string;
-    ejemplo_multigrado?: string;
-    created_at?: string;
-    updated_at?: string;
 }
 
 export interface LearningObjective {
@@ -230,14 +223,293 @@ export interface LearningObjective {
     contentIds: number[];
 }
 
-export interface MomentosFormativos {
-    practica: PracticaItem[];
-    teoria: TeoriaItem[];
-    produccion: ProduccionItem[];
-    valoracion: ValoracionItem[];
-    adaptaciones: AdaptacionBasicaItem[];
-    recursos: RecursoItem[];
-    fuentes: MiFuenteItem[];
+// --- Pedagogical Moments ---
+
+export interface BasePlanningDetail {
+    planificacion_semanal_id?: string;
+    created_at?: string;
+    updated_at?: string;
+}
+
+export interface PracticaLibraryItem {
+    id_practica: number | string;
+    nombre_practica: string;
+    proposito?: string;
+    tipo?: string;
+    apto_para?: string;
+    descripcion_concreta?: string;
+    ejemplo_inicial?: string;
+    ejemplo_primaria?: string;
+    ejemplo_secundaria?: string;
+    ejemplo_multigrado?: string;
+}
+
+export interface PracticaItem extends BasePlanningDetail {
+    id_practica?: number | string;
+    codigo_biblioteca_practica?: number | string | null;
+    nombre_practica: string;
+    preguntas?: string;
+    descripcion?: string;
+    proposito?: string;
+    tipo?: string;
+    apto_para?: string;
+    redactado?: string;
+    descripcion_concreta?: string;
+    ejemplo_inicial?: string;
+    ejemplo_primaria?: string;
+    ejemplo_secundaria?: string;
+    ejemplo_multigrado?: string;
+}
+
+export interface TeoriaLibraryItem {
+    id_teoria: number | string;
+    nombre_estrategia_teorica: string;
+    proposito?: string;
+    tipo?: string;
+}
+
+export interface TeoriaItem extends BasePlanningDetail {
+    id_teoria?: number | string;
+    codigo_biblioteca_teoria?: number | string | null;
+    nombre_estrategia_teorica: string;
+    proposito?: string;
+    tipo?: string;
+    apto_para?: string;
+    redactado?: string;
+    descripcion_concreta?: string;
+    ejemplo_inicial?: string;
+    ejemplo_primaria?: string;
+    ejemplo_secundaria?: string;
+    ejemplo_multigrado?: string;
+}
+
+export interface ProduccionLibraryItem {
+    id_produccion: number | string;
+    nombre_produccion: string;
+    descripcion_concreta?: string;
+    nivel?: string;
+    subnivel?: string;
+    tipo?: string;
+    apto_para?: string;
+    instrumento?: string;
+    proposito?: string;
+}
+
+export interface ProduccionItem extends BasePlanningDetail {
+    id_produccion?: number | string;
+    codigo_biblioteca_produccion?: number | string | null;
+    nombre_produccion: string;
+    nivel?: string;
+    subnivel?: string;
+    tipo?: string;
+    apto_para?: string;
+    redactado?: string;
+    instrumento?: string;
+    descripcion_concreta?: string;
+    proposito?: string;
+    ejemplo_inicial?: string;
+    ejemplo_primaria?: string;
+    ejemplo_secundaria?: string;
+    ejemplo_multigrado?: string;
+}
+
+export interface ValoracionLibraryItem {
+    id_valoracion: number | string;
+    categoria: string;
+    subcategoria?: string;
+    tipo?: string;
+    apto_para?: string;
+    preguntas?: string;
+    instrumento?: string;
+    redactado?: string;
+}
+
+export interface ValoracionItem extends BasePlanningDetail {
+    id_valoracion?: number | string;
+    codigo_biblioteca_valoracion?: number | string | null;
+    categoria: string;
+    subcategoria?: string;
+    tipo?: string;
+    apto_para?: string;
+    preguntas?: string;
+    instrumento?: string;
+    redactado?: string;
+    proposito?: string;
+    ejemplo_inicial?: string;
+    ejemplo_primaria?: string;
+    ejemplo_secundaria?: string;
+    ejemplo_multigrado?: string;
+}
+
+export interface RecursoLibraryItem {
+    id_recursos: number | string;
+    tipo?: string;
+    recursos?: string;
+    redactado?: string;
+    apto_para?: string;
+    ejemplo?: string;
+    ejemplo_inicial?: string;
+    ejemplo_primaria?: string;
+    ejemplo_secundaria?: string;
+    ejemplo_multigrado?: string;
+}
+
+export interface RecursoItem extends BasePlanningDetail {
+    id_recursos?: number | string;
+    codigo_biblioteca_recursos?: number | string | null;
+    recursos?: string;
+    redactado?: string;
+    tipo?: string;
+    proposito?: string;
+    apto_para?: string;
+    ejemplo?: string;
+    ejemplo_inicial?: string;
+    ejemplo_primaria?: string;
+    ejemplo_secundaria?: string;
+    ejemplo_multigrado?: string;
+}
+
+export interface MiFuenteLibraryItem {
+    id_mi_fuente: number | string;
+    perfil_id?: string;
+    tipo?: string | null;
+    autor?: string;
+    anio?: string;
+    titulo_fuente?: string;
+    url?: string;
+    detalle?: string;
+}
+
+export interface MiFuenteItem extends BasePlanningDetail {
+    id_fuente?: number | string;
+    codigo_biblioteca_mi_fuente?: number | string | null;
+    titulo_fuente?: string;
+    autor?: string;
+    anio?: string;
+    url?: string;
+    detalle?: string;
+    tipo?: string;
+}
+
+export interface AdaptacionBasicaLibraryItem {
+    id_adaptacion_basica: number | string;
+    tipo?: string;
+    situacion?: string;
+    nombre_adaptacion?: string;
+    descripcion_situacion?: string;
+    apto_para?: string;
+    redactado?: string;
+    ejemplo_inicial?: string;
+    ejemplo_primaria?: string;
+    ejemplo_secundaria?: string;
+    ejemplo_multigrado?: string;
+}
+
+export interface AdaptacionBasicaItem extends BasePlanningDetail {
+    id_adaptacion_basica?: number | string;
+    codigo_biblioteca_adaptacion?: number | string | null;
+    nombre_adaptacion?: string;
+    tipo?: string;
+    situacion?: string;
+    descripcion_situacion?: string;
+    apto_para?: string;
+    redactado?: string;
+    proposito?: string;
+    ejemplo_inicial?: string;
+    ejemplo_primaria?: string;
+    ejemplo_secundaria?: string;
+    ejemplo_multigrado?: string;
+}
+
+// --- Evaluation ---
+
+export interface SerLibraryItem {
+    id_ser: number | string;
+    categoria: string;
+    subcategoria: string;
+    nombre_ser: string;
+    redactado?: string;
+    instrumento_sugerido?: string;
+}
+
+export interface ObjetivoEstrategico {
+    id: number;
+    pdc_area_trabajo_id: number;
+    descripcion: string;
+    descripcion_ia?: string;
+    creado_en?: string;
+    instrumento_sugerido?: string;
+    codigo_biblioteca_ser?: number | string;
+    created_at?: string;
+}
+
+export interface SerItem {
+    id_ser?: number;
+    pdc_area_trabajo_id: string;
+    nombre_ser: string;
+    redactado?: string;
+    instrumento_sugerido?: string;
+    codigo_biblioteca_ser?: number | string;
+    created_at?: string;
+}
+
+export interface SaberLibraryItem {
+    id_saber: number | string;
+    nivel: string;
+    subnivel: string;
+    verbo_saber: string;
+    redactado?: string;
+    instrumento_sugerido?: string;
+    evidencia?: string;
+}
+
+export interface SaberItem {
+    id_saber?: number;
+    pdc_area_trabajo_id: string;
+    verbo_saber: string;
+    redactado?: string;
+    instrumento_sugerido?: string;
+    evidencia?: string;
+    codigo_biblioteca_saber?: number | string;
+    created_at?: string;
+}
+
+export interface HacerLibraryItem {
+    id_hacer: number | string;
+    nivel: string;
+    subnivel: string;
+    verbo: string;
+    redactado?: string;
+    instrumento_sugerido?: string;
+    producto?: string;
+}
+
+export interface HacerItem {
+    id_hacer?: number;
+    pdc_area_trabajo_id: string;
+    verbo: string;
+    redactado?: string;
+    instrumento_sugerido?: string;
+    producto?: string;
+    codigo_biblioteca_hacer?: number | string;
+    created_at?: string;
+}
+
+export interface AdaptacionEvaluacionLibraryItem {
+    id_adaptacion_evaluacion: number | string;
+    condicion: string;
+    nombre_adaptacion: string;
+    redactado?: string;
+}
+
+export interface AdaptacionEvaluacionItem {
+    id_adaptacion_evaluacion?: number;
+    pdc_area_trabajo_id: string;
+    nombre_adaptacion: string;
+    condicion?: string;
+    redactado?: string;
+    codigo_biblioteca_evaluacion_adaptaciones_especiales?: number | string;
+    created_at?: string;
 }
 
 export interface CriteriosEvaluacion {
@@ -247,8 +519,18 @@ export interface CriteriosEvaluacion {
     decidir: string;
 }
 
+// --- Design State ---
+
 export interface WeekDesign {
-    momentos: MomentosFormativos;
+    momentos: {
+        practica: PracticaItem[];
+        teoria: TeoriaItem[];
+        produccion: ProduccionItem[];
+        valoracion: ValoracionItem[];
+        adaptaciones: AdaptacionBasicaItem[];
+        recursos: RecursoItem[];
+        fuentes: MiFuenteItem[];
+    };
     momentos_json?: any[];
     recursos_json?: any[];
     fuentes_json?: any[];
@@ -261,19 +543,8 @@ export interface WeekDesign {
 export interface AreaDesignState {
     learningObjectives: LearningObjective[];
     generatorMode: 'auto' | 'manual';
-    currentObjective: {
-        verboIds: number[];
-        contentIds: number[];
-        complementId: number | null;
-        complement: string;
-        draft: string;
-        isManual: boolean;
-    };
-    manualObjective: {
-        quiero: string;
-        paraQue: string;
-        medire: string;
-    };
+    currentObjective: any;
+    manualObjective: any;
     weekContentsMap: Record<number, UserContent[]>;
     availableContents: UserContent[];
     weekDesignState: Record<number, WeekDesign>;
@@ -283,329 +554,7 @@ export interface AreaDesignState {
     periodo_semanal?: number;
 }
 
-// --- Planning Detail Interfaces (Phase 2 & 3) ---
-
-export interface BasePlanningDetail {
-    planificacion_semanal_id?: string; // Relation to planificacion_semanal.id
-    created_at?: string;
-    updated_at?: string;
-}
-
-export interface PracticaItem extends BasePlanningDetail {
-    id_practica?: number | string;
-    codigo_biblioteca_practica?: string;
-    nombre_practica: string;
-    proposito?: string;
-    tipo?: string;
-    apto_para?: string;
-    redactado?: string;
-    preguntas?: string;
-    descripcion?: string;
-    descripcion_concreta?: string;
-    ejemplo_inicial?: string;
-    ejemplo_primaria?: string;
-    ejemplo_secundaria?: string;
-    ejemplo_multigrado?: string;
-
-    // Compatibility for legacy or temporary objects
-    detalle?: string;
-}
-
-export interface PracticaLibraryItem {
-    id_practica: number | string;
-    nombre_practica: string;
-    proposito?: string;
-    tipo?: string;
-    apto_para?: string;
-    descripcion_concreta?: string;
-    preguntas?: string;
-    redactado?: string;
-    ejemplo_inicial?: string;
-    ejemplo_primaria?: string;
-    ejemplo_secundaria?: string;
-    ejemplo_multigrado?: string;
-}
-
-export interface TeoriaItem extends BasePlanningDetail {
-    id_teoria?: number;
-    codigo_biblioteca_teoria?: string;
-    nombre_estrategia_teorica: string;
-    proposito?: string;
-    tipo?: string;
-    apto_para?: string;
-    descripcion_concreta?: string;
-    redactado?: string;
-    ejemplo_inicial?: string;
-    ejemplo_primaria?: string;
-    ejemplo_secundaria?: string;
-    ejemplo_multigrado?: string;
-}
-
-
-export interface ProduccionLibraryItem {
-    id_produccion: number | string;
-    nombre_produccion: string;
-    descripcion_concreta?: string;
-    nivel?: string;
-    subnivel?: string;
-    tipo?: string;
-    redactado?: string;
-    instrumento?: string;
-    ejemplo_inicial?: string;
-    ejemplo_primaria?: string;
-    ejemplo_secundaria?: string;
-    ejemplo_multigrado?: string;
-}
-
-export interface ProduccionItem extends BasePlanningDetail {
-    id_produccion?: number | string;
-    codigo_biblioteca_produccion?: string;
-    nombre_produccion: string;
-    descripcion_concreta?: string;
-    nivel?: string;
-    subnivel?: string;
-    tipo?: string;
-    apto_para?: string;
-    redactado?: string;
-    instrumento?: string;
-    proposito?: string;
-    ejemplo_inicial?: string;
-    ejemplo_primaria?: string;
-    ejemplo_secundaria?: string;
-    ejemplo_multigrado?: string;
-}
-
-export interface ValoracionLibraryItem {
-    id_valoracion: number | string;
-    categoria: string;
-    preguntas?: string;
-    redactado?: string;
-    instrumento?: string;
-    ejemplo_inicial?: string;
-    ejemplo_primaria?: string;
-    ejemplo_secundaria?: string;
-    ejemplo_multigrado?: string;
-    apto_para?: string;
-}
-
-export interface ValoracionItem extends BasePlanningDetail {
-    id_valoracion?: number | string;
-    codigo_biblioteca_valoracion?: number | string;
-    categoria: string;
-    subcategoria?: string;
-    proposito?: string;
-    preguntas?: string;
-    redactado?: string;
-    instrumento?: string;
-    apto_para?: string;
-    ejemplo_inicial?: string;
-    ejemplo_primaria?: string;
-    ejemplo_secundaria?: string;
-    ejemplo_multigrado?: string;
-}
-
-// ─── Adaptaciones Básicas ─────────────────────────────────────────────────────
-
-export interface AdaptacionBasicaLibraryItem {
-    id_adaptacion_basica: number;
-    tipo?: string;
-    situacion?: string;
-    nombre_adaptacion?: string;
-    descripcion_situacion?: string;
-    apto_para?: string;
-    redactado?: string;
-}
-
-export interface AdaptacionBasicaItem extends BasePlanningDetail {
-    id_adaptacion_basica?: number | string;
-    planificacion_semanal_id?: string;
-    tipo?: string;
-    tipo_adaptacion?: string;  // alias legacy
-    situacion?: string;
-    descripcion_situacion?: string;
-    nombre_adaptacion?: string;
-    apto_para?: string;
-    proposito?: string;
-    estrategia_metodologica?: string;  // alias legacy
-    ejemplo_inicial?: string;
-    ejemplo_primaria?: string;
-    ejemplo_secundaria?: string;
-    ejemplo_multigrado?: string;
-    redactado?: string;
-    codigo_biblioteca_adaptacion?: number | null;
-}
-
-// ─── Recursos ─────────────────────────────────────────────────────────────────
-
-export interface RecursoLibraryItem {
-    id_recursos: number;
-    tipo?: string;
-    recursos?: string;
-    redactado?: string;
-    ejemplo_inicial?: string;
-    ejemplo_primaria?: string;
-    ejemplo_secundaria?: string;
-    ejemplo_multigrado?: string;
-    ejemplo?: string;
-    apto_para?: string;
-}
-
-export interface RecursoItem extends BasePlanningDetail {
-    id_recursos?: number | string;
-    planificacion_semanal_id?: string;
-    tipo?: string;
-    recursos?: string;
-    redactado?: string;
-    proposito?: string;
-    apto_para?: string;
-    ejemplo_inicial?: string;
-    ejemplo_primaria?: string;
-    ejemplo_secundaria?: string;
-    ejemplo_multigrado?: string;
-    ejemplo?: string;
-    codigo_biblioteca_recursos?: number | null;
-}
-
-
-// ─── Tipo de Fuente (catálogo) ────────────────────────────────────────────────
-
-/**
- * Fila de la tabla catálogo `tipo_fuente`.
- * Relación 1:N → biblioteca_mi_fuente.tipo (FK a id_tipo_fuente).
- */
-export interface TipoFuente {
-    id_tipo_fuente: number;
-    tipo_fuente: string;
-    descripcion?: string | null;
-    created_at?: string;
-    updated_at?: string;
-}
-
-// ─── Fuentes (Mi Fuente) ──────────────────────────────────────────────────────
-
-/** Fila de biblioteca_mi_fuente (biblioteca personal permanente del docente) */
-export interface MiFuenteLibraryItem {
-    id_mi_fuente: number;
-    /** FK → perfiles.id — propietario de la fuente */
-    perfil_id?: string;
-    /** FK → tipo_fuente.id_tipo_fuente (guardado como TEXT del valor seleccionado) */
-    tipo?: string | null;
-    /** Objeto join opcional cuando se hace SELECT con tipo_fuente(*) */
-    tipo_fuente_obj?: TipoFuente | null;
-    autor?: string;
-    anio?: string;
-    titulo_fuente?: string;
-    url?: string;
-    detalle?: string;
-    created_at?: string;
-    updated_at?: string;
-}
-
-/** Fila de mi_fuente (instancia vinculada a planificacion_semanal) */
-export interface MiFuenteItem extends BasePlanningDetail {
-    id_fuente?: number | string;
-    planificacion_semanal_id?: string;
-    /** FK → tipo_fuente.id_tipo_fuente (guardado como TEXT del valor seleccionado) */
-    tipo?: string | null;
-    autor?: string;
-    anio?: string;
-    titulo_fuente?: string;
-    url?: string;
-    detalle?: string;
-    codigo_biblioteca_mi_fuente?: number | null;
-}
-
-// ─── Evaluación: SER ──────────────────────────────────────────────────────────
-
-export interface SerLibraryItem {
-    id_ser: number;
-    categoria: string;
-    subcategoria: string;
-    nombre_ser: string;
-    descripcion?: string;
-    redactado?: string;
-    instrumento_sugerido?: string;
-    ejemplo_inicial?: string;
-    ejemplo_primaria?: string;
-    ejemplo_secundaria?: string;
-    ejemplo_multigrado?: string;
-    dificultad?: string;
-}
-
-export interface SerItem extends SerLibraryItem {
-    pdc_area_trabajo_id: string;
-    codigo_biblioteca_ser?: number;
-    created_at?: string;
-    updated_at?: string;
-}
-
-// ─── Evaluación: SABER ────────────────────────────────────────────────────────
-
-export interface SaberLibraryItem {
-    id_saber: number;
-    nivel: string;
-    subnivel: string;
-    verbo_saber: string;
-    redactado?: string;
-    evidencia?: string;
-    instrumento_sugerido?: string;
-    ejemplo_inicial?: string;
-    ejemplo_primaria?: string;
-    ejemplo_secundaria?: string;
-    ejemplo_multigrado?: string;
-    dificultad?: string;
-}
-
-export interface SaberItem extends SaberLibraryItem {
-    pdc_area_trabajo_id: string;
-    codigo_biblioteca_saber?: number;
-    created_at?: string;
-    updated_at?: string;
-}
-
-// ─── Evaluación: HACER ────────────────────────────────────────────────────────
-
-export interface HacerLibraryItem {
-    id_hacer: number;
-    nivel: string;
-    subnivel: string;
-    verbo: string;
-    redactado?: string;
-    producto?: string;
-    instrumento_sugerido?: string;
-    ejemplo_inicial?: string;
-    ejemplo_primaria?: string;
-    ejemplo_secundaria?: string;
-    ejemplo_multigrado?: string;
-    dificultad?: string;
-}
-
-export interface HacerItem extends HacerLibraryItem {
-    pdc_area_trabajo_id: string;
-    codigo_biblioteca_hacer?: number;
-    created_at?: string;
-    updated_at?: string;
-}
-
-// ─── Evaluación: ADAPTACIÓN ESPECIAL ──────────────────────────────────────────
-
-export interface AdaptacionEvaluacionLibraryItem {
-    id_adaptacion_evaluacion: number;
-    condicion: string;
-    descripcion?: string;
-    implicaciones_generales?: string;
-    nombre_adaptacion: string;
-    ejemplo?: string;
-    redactado?: string;
-}
-
-export interface AdaptacionEvaluacionItem extends AdaptacionEvaluacionLibraryItem {
-    pdc_area_trabajo_id: string;
-    codigo_biblioteca_evaluacion_adaptaciones_especiales?: number;
-    created_at?: string;
-    updated_at?: string;
-}
-// --- Report & Export Types (Unified) ---
+// --- Report & Export ---
 
 export interface HierarchyRoot extends UserContent {
     children: (UserContent & { global_sub_index: number })[];
@@ -614,15 +563,17 @@ export interface HierarchyRoot extends UserContent {
 }
 
 export interface FullReportArea {
-    id: string; // ID de pdc_area_trabajo
+    id: string;
     nombre: string;
     grado_nombre: string;
     objetivos_aprendizaje: string;
+    objetivos_aprendizaje_ia?: string;
     criterios_evaluacion: string;
     criterios_evaluacion_ia?: string;
     adaptaciones_no_significativas: string;
     adaptaciones_no_significativas_ia?: string;
     adaptaciones_especiales_ia?: string;
+    adaptaciones_especiales_original?: string;
     criterios_evaluacion_adaptaciones: string;
     criterios_evaluacion_adaptaciones_ia?: string;
     periodo_semanal: number;
@@ -630,14 +581,28 @@ export interface FullReportArea {
 }
 
 export interface FullReportData {
+    gestion: number;
+    trimestre: number;
+    mes: number;
     distritos: string;
     unidades: string;
     niveles: string;
     grados: string;
     areas: string;
     docente: string;
+    docente_id: string;
     director: string;
+    director_id: string;
     objetivo_holistico_nivel: string;
+    producto_final?: string;
     areas_trabajo: FullReportArea[];
     bibliografia_global?: string;
 }
+
+// --- AI & UX Specific Types ---
+export type TonoRedaccion =
+    | 'Academico'
+    | 'Reflexivo'
+    | 'Dinamico';
+
+export type NivelProfundidad = 'Sugerir moderadamente' | 'Refinar profundamente' | 'Solo correcciones';

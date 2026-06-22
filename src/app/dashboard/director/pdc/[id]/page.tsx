@@ -181,7 +181,7 @@ export default function DirectorPdcReviewPage() {
                         <div className="grid grid-cols-1 gap-3 pt-4">
                             <Button 
                                 onClick={() => handleSaveObservations()}
-                                loading={saving}
+                                isLoading={saving}
                                 className="w-full h-12 rounded-2xl bg-white border-2 border-slate-200 text-slate-700 font-black hover:bg-slate-50 gap-2"
                             >
                                 <span className="material-symbols-rounded text-lg">save</span>

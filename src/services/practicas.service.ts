@@ -17,17 +17,26 @@ export interface PracticaLibraryItem {
     ejemplo_multigrado: string;
 }
 
+let libraryCache: PracticaLibraryItem[] | null = null;
+
 export const PracticasService = {
     /**
      * Obtiene todos los ítems de la biblioteca de prácticas.
      */
     async getLibrary(): Promise<ServiceResponse<PracticaLibraryItem[]>> {
+        if (libraryCache) {
+            return { data: libraryCache, error: null, success: true };
+        }
         const { data, error } = await supabase
             .from('biblioteca_practica')
             .select('*')
             .order('proposito', { ascending: true });
 
-        return { data, error, success: !error };
+        if (!error && data) {
+            libraryCache = data as PracticaLibraryItem[];
+        }
+
+        return { data: data as PracticaLibraryItem[], error, success: !error };
     },
 
     /**

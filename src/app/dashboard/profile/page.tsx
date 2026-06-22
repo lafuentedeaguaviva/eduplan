@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 
 export default function ProfilePage() {
     const router = useRouter();
-    const { profile: globalProfile, refetchProfile, loading: globalLoading } = useProfile();
+    const { profile: globalProfile, refetchProfile, loading: globalLoading, activeRole, setActiveRole } = useProfile();
     const [isLoading, setIsLoading] = useState(true);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success'>('idle');
     const [errorMessage, setErrorMessage] = useState('');
@@ -39,8 +39,14 @@ export default function ProfilePage() {
     const handleLogout = async () => {
         if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
             await AuthService.signOut();
+            localStorage.removeItem('eduplan_active_role');
             router.push('/login');
         }
+    };
+
+    const handleSwitchRole = () => {
+        localStorage.removeItem('eduplan_active_role');
+        window.location.reload();
     };
 
     const handleSave = async () => {
@@ -100,14 +106,26 @@ export default function ProfilePage() {
                     <h1 className="text-3xl font-black text-slate-900 tracking-tighter">Mi Perfil</h1>
                     <p className="text-slate-500 font-medium text-sm mt-1">Personaliza tu información para tus documentos.</p>
                 </div>
-                <Button 
-                    variant="outline" 
-                    className="border-rose-200 text-rose-500 hover:bg-rose-50 rounded-2xl gap-2 font-black text-xs uppercase tracking-widest"
-                    onClick={handleLogout}
-                >
-                    <span className="material-symbols-rounded text-lg">logout</span>
-                    Cerrar Sesión
-                </Button>
+                <div className="flex gap-2">
+                    {(globalProfile?.roles || []).length > 1 && (
+                        <Button 
+                            variant="outline" 
+                            className="border-indigo-200 text-indigo-500 hover:bg-indigo-50 rounded-2xl gap-2 font-black text-xs uppercase tracking-widest"
+                            onClick={handleSwitchRole}
+                        >
+                            <span className="material-symbols-rounded text-lg font-black">sync_alt</span>
+                            Cambiar Rol
+                        </Button>
+                    )}
+                    <Button 
+                        variant="outline" 
+                        className="border-rose-200 text-rose-500 hover:bg-rose-50 rounded-2xl gap-2 font-black text-xs uppercase tracking-widest"
+                        onClick={handleLogout}
+                    >
+                        <span className="material-symbols-rounded text-lg">logout</span>
+                        Cerrar Sesión
+                    </Button>
+                </div>
             </div>
 
             {/* ─── PROFILE CARD ─── */}

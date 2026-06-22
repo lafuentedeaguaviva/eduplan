@@ -14,11 +14,13 @@ export const gemini = {
       throw new Error("No se proporcionó un método de autenticación (Token o API Key).");
     }
 
-    // gemini-1.5-flash: El modelo más estable y compatible.
+    // gemini-1.5-flash: Más estable para cuotas gratuitas y alta velocidad.
     const MODEL = "gemini-1.5-flash";
     
-    // Soporte para AI Gateways (Vercel, Cloudflare, etc.) para mejorar resiliencia y caché
-    const BASE_URL = process.env.NEXT_PUBLIC_AI_GATEWAY_URL || 'https://generativelanguage.googleapis.com';
+    // Llamada directa a la API de Google Gemini.
+    // La resiliencia (reintentos, backoff, failover) se maneja en aiOptimization.service.ts
+    // El rate limiting y logging se gestionan en ai.service.ts + tabla ia_consumo_logs
+    const BASE_URL = 'https://generativelanguage.googleapis.com';
     let url = `${BASE_URL}/v1beta/models/${MODEL}:generateContent`;
     
     const headers: Record<string, string> = {

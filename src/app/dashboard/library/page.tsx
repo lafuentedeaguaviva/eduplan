@@ -97,11 +97,9 @@ function LibraryContent() {
                 )}
             />
 
-            {/* Admin Experience */}
-            {isAdmin && (
-                <>
-                    <div className="relative mb-16">
-                        <form onSubmit={handleSearchSubmit} className="relative z-10">
+            {/* Unified Search Experience */}
+            <div className="relative mb-16">
+                <form onSubmit={handleSearchSubmit} className="relative z-10">
                             <div className="group relative max-w-3xl mx-auto">
                                 <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none z-20">
                                     <span className="material-symbols-rounded text-slate-400 group-focus-within:text-primary transition-colors text-2xl">search</span>
@@ -147,19 +145,18 @@ function LibraryContent() {
                         </aside>
 
                         <section className="xl:col-span-3 space-y-10">
-                            <div className="flex items-center justify-between border-b border-slate-100 pb-6">
-                                <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3">
-                                    <div className="w-2 h-8 bg-primary rounded-full"></div>
-                                    Resultados Disponibles
-                                </h2>
-                            </div>
-
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 {results.length > 0 ? (
-                                    results.map((item: ContentItem) => (
+                                    results.map((item: ContentItem & { area_trabajo_id?: string }) => (
                                         <Card
                                             key={item.id}
-                                            onClick={() => useContentInWorkArea(item.id)}
+                                            onClick={() => {
+                                                if (item.is_base) {
+                                                    useContentInWorkArea(item.id);
+                                                } else if (item.area_trabajo_id) {
+                                                    navigateToArea(item.area_trabajo_id);
+                                                }
+                                            }}
                                             className="p-10 rounded-[4rem] group hover:scale-[1.02] active:scale-[0.98] border-none shadow-2xl shadow-slate-200/50 hover:shadow-primary/10 transition-all cursor-pointer bg-white"
                                         >
                                             <div className="flex flex-col h-full">
@@ -188,8 +185,8 @@ function LibraryContent() {
                                                         Dificultad: Estándar
                                                     </div>
                                                     <div className="flex items-center gap-2 text-primary font-black text-xs uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all transform translate-x-4 group-hover:translate-x-0">
-                                                        AÑADIR A MI PLAN
-                                                        <span className="material-symbols-rounded text-xl">add_circle</span>
+                                                        {item.is_base ? 'AÑADIR A MI PLAN' : 'VER MI CONTENIDO'}
+                                                        <span className="material-symbols-rounded text-xl">{item.is_base ? 'add_circle' : 'arrow_forward'}</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -211,36 +208,6 @@ function LibraryContent() {
                             </div>
                         </section>
                     </main>
-                </>
-            )}
-
-            {/* Teacher Experience: Full Width Grid */}
-            {!isAdmin && (
-                <main className="space-y-12">
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-10">
-                        <div className="space-y-2">
-                            <h2 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-4">
-                                <div className="w-3 h-10 bg-primary rounded-full"></div>
-                                Tus Clases
-                            </h2>
-                            <p className="text-slate-400 font-medium text-sm">Selecciona una clase para gestionar sus contenidos curriculares.</p>
-                        </div>
-                        <div className="w-16 h-16 bg-slate-50 rounded-3xl flex items-center justify-center text-slate-300">
-                            <span className="material-symbols-rounded text-3xl">hub</span>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {areas.map((area) => (
-                            <ClassCard
-                                key={area.id}
-                                area={area}
-                                onClick={() => navigateToArea(area.id)}
-                            />
-                        ))}
-                    </div>
-                </main>
-            )}
         </div>
     );
 }
@@ -262,4 +229,3 @@ export default function LibraryPage() {
         </Suspense>
     );
 }
-

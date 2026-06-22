@@ -5,17 +5,17 @@ import { deepseek } from "@/lib/deepseekWrapper";
 /**
  * Proxy API para DeepSeek.
  * Permite usar DeepSeek como alternativa económica a Gemini.
+ * Registra consumo de tokens en ia_consumo_logs para el dashboard admin.
  */
 export async function POST(req: Request) {
   try {
     const supabase = await createClient();
-    const { data: { session }, error: authError } = await supabase.auth.getSession();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    if (authError || !session) {
+    if (authError || !user) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
 
-    // Prioridad: API Key de DeepSeek en env vars (Configuración Global)
     const apiKey = process.env.DEEPSEEK_API_KEY;
 
     if (!apiKey) {
@@ -30,8 +30,23 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Falta el prompt" }, { status: 400 });
     }
 
-    // Ejecutar generación
+    // console.log(`\n\n========== [SERVER] PROMPT A DEEPSEEK ==========\n${prompt}\n==================================================\n`);
+
     const result = await deepseek.generateContent(prompt, { apiKey }, context);
+
+    console.log(`\n\n========== [SERVER] RESPUESTA DE DEEPSEEK ==========\n${result.text}\n======================================================\n`);
+
+    // Registrar consumo de tokens (espejo de lo que hace /api/gemini vía ai.service)
+    await supabase.from("ia_consumo_logs").insert({
+      usuario_id: user.id,
+      prompt_tokens: result.usage?.promptTokenCount || 0,
+      completion_tokens: result.usage?.candidatesTokenCount || 0,
+      total_tokens: result.usage?.totalTokenCount || 0,
+      tipo_operacion: "deepseek_generacion",
+      proveedor: "deepseek",
+    }).then(({ error }) => {
+      if (error) console.error("Error registrando log DeepSeek:", error);
+    });
 
     return NextResponse.json({ text: result.text });
   } catch (error: any) {

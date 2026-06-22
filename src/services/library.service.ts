@@ -57,6 +57,88 @@ export const LibraryService = {
     },
 
     /**
+     * Busca contenidos propios del usuario (contenidos_usuario).
+     * @param {string} query - Término de búsqueda.
+     * @param {string} userId - ID del profesor.
+     * @param {string} areaTrabajoId - Opcional. Filtrar por una clase específica.
+     * @returns {Promise<ServiceResponse<ContentItem[]>>} Lista de contenidos encontrados adaptados al formato ContentItem.
+     */
+    async searchUserContents(query: string = '', userId: string, areaTrabajoId?: string | null): Promise<ServiceResponse<ContentItem[]>> {
+        // Obtenemos primero las áreas del usuario para evitar problemas de join en Supabase
+        const { data: userAreas, error: areasError } = await supabase
+            .from('areas_trabajo')
+            .select('id')
+            .eq('profesor_id', userId);
+
+        if (areasError) {
+            console.error('Error fetching user areas:', areasError);
+            return { data: [], error: areasError, success: false };
+        }
+        
+        if (!userAreas || userAreas.length === 0) {
+            return { data: [], error: null, success: true };
+        }
+
+        const areaIds = userAreas.map(a => a.id);
+
+        let queryBuilder = supabase
+            .from('contenidos_usuario')
+            .select(`
+                id,
+                titulo,
+                padre_id,
+                orden,
+                area_trabajo_id,
+                origen_base:contenidos_base(
+                    trimestre
+                ),
+                area_trabajo:areas_trabajo(
+                    id,
+                    profesor_id,
+                    area_conocimiento:areas_conocimiento(
+                        id,
+                        nombre,
+                        grado:grados(
+                            id,
+                            nombre,
+                            nivel:niveles(id, nombre)
+                        )
+                    )
+                )
+            `)
+            .in('area_trabajo_id', areaIds)
+            .limit(50);
+
+        if (query) {
+            queryBuilder = queryBuilder.ilike('titulo', `%${query}%`);
+        }
+
+        if (areaTrabajoId) {
+            queryBuilder = queryBuilder.eq('area_trabajo_id', areaTrabajoId);
+        }
+
+        const { data, error } = await queryBuilder;
+
+        if (error) {
+            console.error('Error searching user contents:', error);
+            return { data: [], error, success: false };
+        }
+
+        const mapped = (data || []).map((item: any) => ({
+            id: item.id,
+            titulo: item.titulo,
+            trimestre: item.origen_base?.trimestre,
+            padre_id: item.padre_id,
+            orden: item.orden,
+            area_conocimiento: item.area_trabajo?.area_conocimiento,
+            is_base: false,
+            area_trabajo_id: item.area_trabajo_id
+        })) as ContentItem[];
+
+        return { data: mapped, error: null, success: true };
+    },
+
+    /**
      * Obtiene los contenidos base asociados a un área de conocimiento específica.
      * @param {number} areaConocimientoId - ID del área de conocimiento.
      * @returns {Promise<ServiceResponse<ContentItem[]>>} Lista de contenidos base.
@@ -129,35 +211,130 @@ export const LibraryService = {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) return { success: false, data: null, error: 'No authenticated session' };
 
-        // 1. Get base content details
+        // 1. Check if already exists to avoid duplicates
+        const { data: existing } = await supabase
+            .from('contenidos_usuario')
+            .select('*')
+            .eq('area_trabajo_id', areaTrabajoId)
+            .eq('origen_base_id', String(baseContentId))
+            .limit(1);
+        
+        if (existing && existing.length > 0) {
+            return { success: true, data: existing[0], error: null };
+        }
+
+        // 2. Get base content details
         const { data: baseContent } = await supabase
             .from('contenidos_base')
             .select('*')
-            .eq('id', baseContentId)
+            .eq('id', Number(baseContentId))
             .single();
 
         if (!baseContent) return { success: false, data: null, error: 'Base content not found' };
 
-        // 2. Preserve hierarchy
-        let userPadreId = null;
-        if (baseContent.padre_id) {
-            const { data: existingUserPadre } = await supabase
+        // 3. Prepare manual ID assignment
+        const { data: maxId } = await supabase.rpc('get_max_user_content_id');
+        let nextId = Number(maxId || 0);
+
+        // 4. Handle hierarchy recursively upwards (Resolve all ancestors)
+        const missingAncestors = [];
+        let currentBaseParentId = baseContent.padre_id;
+        
+        while (currentBaseParentId !== null && currentBaseParentId !== undefined) {
+            // Does this ancestor already exist in the user's workspace?
+            const { data: existingAncestor } = await supabase
                 .from('contenidos_usuario')
                 .select('id')
                 .eq('area_trabajo_id', areaTrabajoId)
-                .eq('origen_base_id', baseContent.padre_id)
+                .eq('origen_base_id', String(currentBaseParentId))
+                .limit(1);
+
+            if (existingAncestor && existingAncestor.length > 0) {
+                // We found a connecting point. Stop traversing.
+                break;
+            }
+
+            // Fetch the missing ancestor from base
+            const { data: baseAncestor } = await supabase
+                .from('contenidos_base')
+                .select('*')
+                .eq('id', Number(currentBaseParentId))
                 .single();
 
-            if (existingUserPadre) userPadreId = existingUserPadre.id;
+            if (!baseAncestor) break;
+
+            missingAncestors.push(baseAncestor);
+            currentBaseParentId = baseAncestor.padre_id;
         }
 
-        // 3. Create user content (Auto-ID via DB sequence)
+        // missingAncestors is ordered from immediate parent -> root. We must insert root -> immediate parent.
+        missingAncestors.reverse();
+
+        let lastInsertedUserParentId: string | number | null = null;
+
+        if (missingAncestors.length > 0) {
+            // We need to link the highest missing ancestor to its existing parent in the user workspace (if any)
+            let highestMissingAncestorParentIdInUser: string | number | null = null;
+            const topAncestorBaseParentId = missingAncestors[0].padre_id;
+            
+            if (topAncestorBaseParentId !== null && topAncestorBaseParentId !== undefined) {
+                const { data: rootParentInUser } = await supabase
+                    .from('contenidos_usuario')
+                    .select('id')
+                    .eq('area_trabajo_id', areaTrabajoId)
+                    .eq('origen_base_id', String(topAncestorBaseParentId))
+                    .limit(1);
+                
+                if (rootParentInUser && rootParentInUser.length > 0) {
+                    highestMissingAncestorParentIdInUser = rootParentInUser[0].id;
+                }
+            }
+
+            let currentParentIdForInsert = highestMissingAncestorParentIdInUser;
+
+            for (const p of missingAncestors) {
+                nextId++;
+                const newId = nextId;
+                await supabase
+                    .from('contenidos_usuario')
+                    .insert({
+                        id: newId,
+                        area_trabajo_id: areaTrabajoId,
+                        origen_base_id: String(p.id),
+                        padre_id: currentParentIdForInsert ? String(currentParentIdForInsert) : null,
+                        titulo: p.titulo,
+                        orden: p.orden
+                    });
+                currentParentIdForInsert = newId;
+            }
+            lastInsertedUserParentId = currentParentIdForInsert;
+
+        } else {
+            // No ancestors missing, so the immediate parent MUST exist in user DB (if baseContent has a parent)
+            if (baseContent.padre_id !== null && baseContent.padre_id !== undefined) {
+                const { data: existingParent } = await supabase
+                    .from('contenidos_usuario')
+                    .select('id')
+                    .eq('area_trabajo_id', areaTrabajoId)
+                    .eq('origen_base_id', String(baseContent.padre_id))
+                    .limit(1);
+                
+                if (existingParent && existingParent.length > 0) {
+                    lastInsertedUserParentId = existingParent[0].id;
+                }
+            }
+        }
+
+        // 5. Create user content
+        nextId++;
+        const newChildId = nextId;
         const { data, error } = await supabase
             .from('contenidos_usuario')
             .insert({
+                id: newChildId,
                 area_trabajo_id: areaTrabajoId,
-                origen_base_id: baseContentId,
-                padre_id: userPadreId,
+                origen_base_id: String(baseContentId),
+                padre_id: lastInsertedUserParentId ? String(lastInsertedUserParentId) : null,
                 titulo: baseContent.titulo,
                 orden: baseContent.orden
             })
@@ -169,52 +346,38 @@ export const LibraryService = {
 
     async updateUserContent(id: number, updates: { titulo?: string }): Promise<ServiceResponse<{ updated: boolean; count: number }>> {
         const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.user) return { success: false, data: null, error: 'No authenticated session' };
+        if (!session?.user) return { success: false, data: { updated: false, count: 0 }, error: 'No authenticated session' };
 
-        const { data, error } = await supabase
+        const { error, count } = await supabase
             .from('contenidos_usuario')
             .update(updates)
-            .eq('id', id)
-            .select();
+            .eq('id', id);
 
-        if (error) {
-            console.error('Error updating user content:', error);
-            return { success: false, data: null, error };
-        }
-
-        const count = data?.length || 0;
-        return { success: count > 0, data: { updated: count > 0, count }, error: null };
+        return { success: !error, data: { updated: !error, count: count || 0 }, error };
     },
 
     async deleteUserContent(id: number): Promise<ServiceResponse<any>> {
-        const { data, error } = await supabase
+        const { error } = await supabase
             .from('contenidos_usuario')
             .delete()
-            .eq('id', id)
-            .select();
+            .eq('id', id);
 
-        return { success: !error, data, error };
+        return { success: !error, data: null, error };
     },
 
     async clearUserContents(areaTrabajoId: string): Promise<ServiceResponse<any>> {
-        const { data, error } = await supabase
+        const { error } = await supabase
             .from('contenidos_usuario')
             .delete()
-            .eq('area_trabajo_id', areaTrabajoId)
-            .select();
+            .eq('area_trabajo_id', areaTrabajoId);
 
-        if (error) {
-            console.error('Error clearing user contents:', error);
-            return { success: false, data: null, error };
-        }
-        return { success: true, data, error: null };
+        return { success: !error, data: null, error };
     },
 
     async createCustomContent(areaTrabajoId: string, titulo: string): Promise<ServiceResponse<UserContent>> {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) return { success: false, data: null, error: 'No session' };
 
-        // Get max order
         const { data: maxOrderData } = await supabase
             .from('contenidos_usuario')
             .select('orden')
@@ -226,9 +389,13 @@ export const LibraryService = {
 
         const nextOrder = (maxOrderData?.orden || 0) + 1;
 
+        const { data: maxId } = await supabase.rpc('get_max_user_content_id');
+        const nextId = (Number(maxId) || 0) + 1;
+
         const { data, error } = await supabase
             .from('contenidos_usuario')
             .insert({
+                id: nextId,
                 area_trabajo_id: areaTrabajoId,
                 titulo,
                 orden: nextOrder
@@ -243,7 +410,6 @@ export const LibraryService = {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) return { success: false, data: null, error: 'No session' };
 
-        // Get max order
         const { data: maxOrderData } = await supabase
             .from('contenidos_usuario')
             .select('orden')
@@ -254,9 +420,13 @@ export const LibraryService = {
 
         const nextOrder = (maxOrderData?.orden || 0) + 1;
 
+        const { data: maxId } = await supabase.rpc('get_max_user_content_id');
+        const nextId = (Number(maxId) || 0) + 1;
+
         const { data, error } = await supabase
             .from('contenidos_usuario')
             .insert({
+                id: nextId,
                 area_trabajo_id: areaTrabajoId,
                 padre_id: padreId,
                 titulo,
@@ -295,7 +465,6 @@ export const LibraryService = {
 
         try {
             // 0. Explicit RLS/Ownership Check
-            console.log(`Checking access for User:${userId} on Area:${areaTrabajoId}`);
             const { data: areaCheck, error: areaCheckError } = await supabase
                 .from('areas_trabajo')
                 .select('id, profesor_id')
@@ -303,10 +472,16 @@ export const LibraryService = {
                 .single();
 
             if (areaCheckError || !areaCheck) {
-                throw new Error(`RLS_FAILURE: No access to area ${areaTrabajoId}. Details: ${JSON.stringify(areaCheckError)}`);
+                throw new Error(`RLS_FAILURE: No access to area ${areaTrabajoId}`);
             }
             
-            console.log('Access verified. Owner matches:', areaCheck.profesor_id === userId);
+            // 0.5 Clean up existing contents
+            const { error: clearError } = await supabase
+                .from('contenidos_usuario')
+                .delete()
+                .eq('area_trabajo_id', areaTrabajoId);
+            
+            if (clearError) throw clearError;
 
             // 1. Fetch base contents
             const { data: baseContents, error: fetchError } = await supabase
@@ -319,79 +494,50 @@ export const LibraryService = {
             if (fetchError) throw fetchError;
             if (!baseContents || baseContents.length === 0) return { success: true, data: [], error: null };
 
-            // 2. Separate Parents and Children
-            const parents = baseContents.filter(c => !c.padre_id);
-            const children = baseContents.filter(c => c.padre_id);
-            const idMap = new Map<number, number>();
+            // 2. Prepare manual ID assignment (Pattern from src1 to bypass RLS mapping issues)
+            const { data: maxId, error: rpcError } = await supabase.rpc('get_max_user_content_id');
+            if (rpcError) throw rpcError;
+            let currentNextId = Number(maxId || 0);
 
-            // 3. STEP 1: Parents (Themes)
-            if (parents.length > 0) {
-                const parentsToInsert = parents.map((p, pIdx) => ({
+            // 3. Pre-map ALL new IDs to support N-level hierarchy
+            const idMap = new Map<string, number>();
+            baseContents.forEach(c => {
+                currentNextId++;
+                idMap.set(String(c.id), currentNextId);
+            });
+
+            // 4. Build items to insert with re-mapped padre_id
+            const itemsToInsert = baseContents.map(c => {
+                const newId = idMap.get(String(c.id));
+                const basePadreId = (c.padre_id !== null && c.padre_id !== undefined) ? String(c.padre_id) : null;
+                const userPadreId = basePadreId ? idMap.get(basePadreId) : null;
+
+                return {
+                    id: newId,
                     area_trabajo_id: areaTrabajoId,
-                    origen_base_id: p.id,
-                    titulo: p.titulo,
-                    orden: pIdx + 1 // Sequential order for themes
-                }));
+                    origen_base_id: String(c.id),
+                    padre_id: userPadreId ? String(userPadreId) : null,
+                    titulo: c.titulo,
+                    orden: c.orden || 1 // Preserve original order if exists
+                };
+            });
 
-                const { data: insertedParents, error: parentError } = await supabase
-                    .from('contenidos_usuario')
-                    .insert(parentsToInsert)
-                    .select('id, origen_base_id');
+            // 5. Insert all mapped items in a single bulk operation
+            // This ensures PostgreSQL validates all foreign keys at the end of the statement,
+            // preventing issues if a child appears before its parent in the array.
+            const { error: insertError } = await supabase
+                .from('contenidos_usuario')
+                .insert(itemsToInsert);
 
-                if (parentError) throw parentError;
-                insertedParents?.forEach(p => {
-                    if (p.origen_base_id) idMap.set(p.origen_base_id, p.id);
-                });
-            }
-
-            // 4. STEP 2: Children (Subthemes)
-            if (children.length > 0) {
-                // Group children by parent to assign sequential order per theme
-                const childrenToInsert: any[] = [];
-                const parentOrderCounters = new Map<number, number>();
-
-                children.forEach(c => {
-                    const userPadreId = c.padre_id ? idMap.get(c.padre_id) : null;
-                    if (userPadreId) {
-                        const currentOrder = (parentOrderCounters.get(userPadreId) || 0) + 1;
-                        parentOrderCounters.set(userPadreId, currentOrder);
-
-                        childrenToInsert.push({
-                            area_trabajo_id: areaTrabajoId,
-                            origen_base_id: c.id,
-                            padre_id: userPadreId,
-                            titulo: c.titulo,
-                            orden: currentOrder
-                        });
-                    }
-                });
-
-                if (childrenToInsert.length > 0) {
-                    const { error: childError } = await supabase
-                        .from('contenidos_usuario')
-                        .insert(childrenToInsert);
-
-                    if (childError) throw childError;
-                }
-            }
+            if (insertError) throw insertError;
 
             return { success: true, data: null, error: null };
         } catch (error: any) {
-            console.error('--- CRITICAL SYNC ERROR DETECTED ---');
-            console.error('Error Code:', error?.code || error?.status || 'N/A');
-            console.error('Error Message:', error?.message || 'N/A');
-            console.error('Error Details:', error?.details || 'N/A');
-            console.error('Error Hint:', error?.hint || 'N/A');
-            console.dir(error); // This shows the interactive object in the browser
-            
+            console.error('--- CRITICAL SYNC ERROR ---', error);
             return { 
                 success: false, 
                 data: null,
-                error: { 
-                    message: error?.message || 'Error desconocido en sincronización',
-                    code: error?.code || 'UNKNOWN',
-                    details: `${error?.details || ''} ${error?.hint || ''}`.trim()
-                }
+                error: { message: error?.message || 'Error en sincronización' }
             };
         }
     }

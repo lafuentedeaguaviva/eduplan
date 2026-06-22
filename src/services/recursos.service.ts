@@ -1,15 +1,25 @@
 import { supabase } from '@/lib/supabase';
 import { RecursoLibraryItem, RecursoItem, ServiceResponse } from '@/types';
 
+let libraryCache: RecursoLibraryItem[] | null = null;
+
 export const RecursosService = {
     /**
      * Obtiene todos los items de biblioteca_recursos.
      */
     async getLibrary(): Promise<ServiceResponse<RecursoLibraryItem[]>> {
+        if (libraryCache) {
+            return { data: libraryCache, error: null, success: true };
+        }
         const { data, error } = await supabase
             .from('biblioteca_recursos')
             .select('*')
             .order('tipo', { ascending: true });
+
+        if (!error && data) {
+            libraryCache = data as RecursoLibraryItem[];
+        }
+
         return { data, error, success: !error };
     },
 

@@ -40,6 +40,7 @@ export const AreasService = {
                     )
                 ),
                 turno:turnos(id, nombre),
+                director:perfiles!areas_trabajo_director_id_fkey(id, nombres, apellidos),
                 created_at
             `)
             .eq('profesor_id', userId)
@@ -85,6 +86,34 @@ export const AreasService = {
     },
 
     /**
+     * Obtiene los directores asignados a una unidad educativa específica.
+     */
+    async getDirectorsByUnit(unitId: number): Promise<ServiceResponse<any[]>> {
+        try {
+            const { data, error } = await db.from('gestion_directores')
+                .select(`
+                    nivel,
+                    perfil:perfiles(id, nombres, apellidos, email)
+                `)
+                .eq('unidad_id', unitId);
+
+            if (error) throw error;
+
+            const directors = (data || []).map((d: any) => ({
+                id: d.perfil?.id,
+                nombres: d.perfil?.nombres,
+                apellidos: d.perfil?.apellidos,
+                nivel: d.nivel
+            }));
+
+            return { data: directors, error: null, success: true };
+        } catch (error: any) {
+            console.error('Error fetching directors by unit:', error);
+            return { data: [], error, success: false };
+        }
+    },
+
+    /**
      * Crea una nueva área de trabajo para un profesor.
      * @param {Object} data - Datos de creación.
      * @returns {Promise<ServiceResponse<any>>} El área creada o el error.
@@ -95,13 +124,15 @@ export const AreasService = {
         area_conocimiento_id: number;
         turno_id: string;
         paralelos_ids: string[];
+        director_id?: string | null;
     }): Promise<ServiceResponse<any>> {
         const { data: area, error: areaError } = await db.from('areas_trabajo')
             .insert({
                 profesor_id: data.profesor_id,
                 unidad_educativa_id: data.unidad_educativa_id,
                 area_conocimiento_id: data.area_conocimiento_id,
-                turno_id: data.turno_id
+                turno_id: data.turno_id,
+                director_id: data.director_id || null
             })
             .select()
             .single();
@@ -142,12 +173,14 @@ export const AreasService = {
         area_conocimiento_id: number;
         turno_id: string;
         paralelos_ids: string[];
+        director_id?: string | null;
     }): Promise<ServiceResponse<any>> {
         const { error: areaError } = await db.from('areas_trabajo')
             .update({
                 unidad_educativa_id: data.unidad_educativa_id,
                 area_conocimiento_id: data.area_conocimiento_id,
-                turno_id: data.turno_id
+                turno_id: data.turno_id,
+                director_id: data.director_id || null
             })
             .eq('id', id);
 
@@ -228,6 +261,8 @@ export const AreasService = {
                     )
                 ),
                 turno:turnos(id, nombre),
+                director_id,
+                director:perfiles!areas_trabajo_director_id_fkey(id, nombres, apellidos),
                 created_at
             `)
             .eq('id', id)

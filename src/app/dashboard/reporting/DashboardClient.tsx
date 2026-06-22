@@ -100,7 +100,7 @@ export default function DashboardClient({ initialStats, initialPdcs, userEmail }
                                             </td>
                                             <td className="py-5 px-6 bg-white/40 group-hover/row:bg-white/80 rounded-r-2xl border-y border-r border-slate-100/50 group-hover/row:border-blue-100 transition-all text-right">
                                                 <Link 
-                                                    href={`/dashboard/reporting/pdc/${pdc.id}`}
+                                                    href={`/dashboard/reporting/viewer/${pdc.id}`}
                                                     className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 shadow-lg shadow-blue-500/20 inline-block"
                                                 >
                                                     Explorar

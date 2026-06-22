@@ -10,7 +10,9 @@ import { InstitutionalStats } from '@/components/director/InstitutionalStats';
 import { StaffTable } from '@/components/director/StaffTable';
 
 export default function DirectorDashboardPage() {
-    const { analytics, staff, pdcs, revisionStats, loading, error } = useDirectorController();
+    const { analytics, staff, pdcs, inbox, revisionStats, loading, error } = useDirectorController();
+
+    const pendingRevisions = inbox.filter((r: any) => r.estado === 'enviado');
 
     if (error) return (
         <div className="p-20 text-center">
@@ -28,10 +30,10 @@ export default function DirectorDashboardPage() {
             <header className="flex flex-col md:flex-row md:items-end justify-between gap-8 py-4">
                 <div className="space-y-3">
                     <div className="flex items-center gap-3">
-                        <Badge variant="accent" className="font-black uppercase tracking-widest text-[10px] bg-slate-900 text-white rounded-lg">
+                        <Badge variant="accent" className="font-black uppercase tracking-widest text-[10px] bg-white border border-slate-200 text-slate-900 rounded-lg shadow-sm">
                             Supervisión 2026
                         </Badge>
-                        <div className="h-1 w-8 bg-emerald-500 rounded-full" />
+                        <div className="h-1.5 w-8 bg-emerald-500 rounded-full" />
                     </div>
                     <h1 className="text-5xl font-black text-slate-900 tracking-tighter leading-none italic">
                         Tablero de Dirección
@@ -100,42 +102,74 @@ export default function DirectorDashboardPage() {
                         />
                     )}
 
-                    {/* Phase 3 & 1: Staff and PDCs Overview */}
-                    <div className="grid grid-cols-1 xl:grid-cols-12 gap-10">
+                    {/* Inbox and Staff Section */}
+                    <div className="grid grid-cols-1 xl:grid-cols-12 gap-10 mt-10">
+                        {/* Inbox (Pending Revisions) */}
+                        <div className="xl:col-span-4 space-y-6">
+                            <div className="flex items-center justify-between px-2">
+                                <div className="flex items-center gap-2">
+                                    <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">Bandeja de Entrada</h3>
+                                    {pendingRevisions.length > 0 && (
+                                        <Badge variant="accent" className="bg-amber-500 text-white rounded-full size-5 flex items-center justify-center p-0 text-[10px]">
+                                            {pendingRevisions.length}
+                                        </Badge>
+                                    )}
+                                </div>
+                                <Link href="/dashboard/director/revisions">
+                                    <Button variant="ghost" className="text-[10px] font-black uppercase tracking-widest text-blue-600 hover:bg-blue-50">
+                                        Ver Todo
+                                    </Button>
+                                </Link>
+                            </div>
+                            
+                            <div className="space-y-4">
+                                {pendingRevisions.length === 0 ? (
+                                    <Card className="p-10 border-dashed border-2 border-slate-100 bg-transparent flex flex-col items-center justify-center text-center space-y-4">
+                                        <span className="material-symbols-rounded text-slate-200 text-5xl">task_alt</span>
+                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Sin revisiones pendientes</p>
+                                    </Card>
+                                ) : (
+                                    pendingRevisions.slice(0, 4).map((rev: any) => (
+                                        <Link key={rev.id} href={`/dashboard/director/revisions/${rev.id}`}>
+                                            <Card className="p-5 border-none shadow-soft bg-white/50 backdrop-blur-sm hover:shadow-premium hover:bg-white transition-all cursor-pointer group relative overflow-hidden">
+                                                <div className="absolute top-0 left-0 h-full w-1 bg-amber-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                <div className="flex items-center justify-between relative z-10">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="size-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-900 font-black text-xs group-hover:bg-blue-600 group-hover:text-white group-hover:border-blue-600 transition-all duration-300">
+                                                            {rev.perfiles?.nombres?.[0]}
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-bold text-slate-900 text-sm group-hover:text-blue-600 transition-colors">{rev.materia}</p>
+                                                            <p className="text-[10px] text-slate-400 font-black uppercase tracking-tighter">
+                                                                {rev.perfiles?.nombres} • {rev.grado}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex flex-col items-end gap-1">
+                                                        <Badge className="bg-amber-100 text-amber-600 text-[8px] font-black uppercase tracking-widest border-none">Pendiente</Badge>
+                                                        <span className="text-[9px] text-slate-300 font-bold">{new Date(rev.updated_at).toLocaleDateString()}</span>
+                                                    </div>
+                                                </div>
+                                            </Card>
+                                        </Link>
+                                    ))
+                                )}
+                            </div>
+
+                            {/* Additional Actions */}
+                            <div className="pt-4 grid grid-cols-2 gap-4">
+                                <Link href="/dashboard/director/pdc" className="col-span-2">
+                                    <Button className="w-full h-14 rounded-2xl bg-white border border-slate-100 shadow-soft text-slate-600 font-bold text-xs gap-3 hover:bg-slate-50 transition-all">
+                                        <span className="material-symbols-rounded text-slate-400">inventory_2</span>
+                                        Archivo Histórico
+                                    </Button>
+                                </Link>
+                            </div>
+                        </div>
+
                         {/* Staff Table */}
                         <div className="xl:col-span-8">
                              <StaffTable staff={staff} />
-                        </div>
-
-                        {/* Recent PDCs Feed */}
-                        <div className="xl:col-span-4 space-y-6">
-                            <div className="flex items-center justify-between px-2">
-                                <h3 className="text-sm font-black uppercase tracking-widest text-slate-400">PDCs Recientes</h3>
-                                <div className="size-2 rounded-full bg-blue-500 animate-ping" />
-                            </div>
-                            <div className="space-y-4">
-                                {pdcs.slice(0, 5).map((pdc) => (
-                                    <Link key={pdc.id} href={`/dashboard/director/pdc/${pdc.id}`}>
-                                        <Card className="p-5 border-none shadow-soft bg-white/50 backdrop-blur-sm hover:shadow-medium hover:bg-white transition-all cursor-pointer group flex items-center justify-between">
-                                            <div className="flex items-center gap-4">
-                                                <div className="size-10 rounded-xl bg-slate-900 flex items-center justify-center text-white font-black text-xs group-hover:bg-blue-600 transition-colors">
-                                                    {pdc.docente?.nombres?.[0]}
-                                                </div>
-                                                <div>
-                                                    <p className="font-bold text-slate-900 text-sm">{pdc.nombre_pdc || 'Plan Curricular'}</p>
-                                                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-tighter">
-                                                        {pdc.docente?.nombres} • {pdc.trimestre}º Trim.
-                                                    </p>
-                                                </div>
-                                            </div>
-                                            <span className="material-symbols-rounded text-slate-200 group-hover:text-blue-500 transition-colors">chevron_right</span>
-                                        </Card>
-                                    </Link>
-                                ))}
-                            </div>
-                            <Button variant="ghost" className="w-full text-[10px] font-black uppercase tracking-widest text-slate-400 py-6 hover:text-slate-900">
-                                Ver todas las planificaciones
-                            </Button>
                         </div>
                     </div>
                 </>

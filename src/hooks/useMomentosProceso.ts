@@ -11,7 +11,7 @@ import { RecursosService } from '@/services/recursos.service';
 import { FuentesService } from '@/services/fuentes.service';
 import { PlanningService } from '@/services/planning.service';
 import {
-    PracticaItem, TeoriaItem, TheoryLibraryItem,
+    PracticaItem, TeoriaItem, TeoriaLibraryItem,
     ProduccionItem, ProduccionLibraryItem,
     ValoracionItem, ValoracionLibraryItem,
     AdaptacionBasicaItem, AdaptacionBasicaLibraryItem,
@@ -112,7 +112,7 @@ export const EMPTY_EDITING_RECURSO: RecursoItem = {
 
 export const EMPTY_EDITING_FUENTE: MiFuenteLibraryItem = {
     id_mi_fuente: 0,
-    tipo: null,
+    tipo: '',
     autor: '',
     anio: '',
     titulo_fuente: '',
@@ -155,8 +155,8 @@ export function useMomentosProceso() {
     const [selectedTipo, setSelectedTipo] = useState<string>('');
 
     // ── Teoría ────────────────────────────────────────────────────────────────
-    const [theoryLibrary, setTheoryLibrary] = useState<TheoryLibraryItem[]>([]);
-    const [selectedTheoryLibraryItem, setSelectedTheoryLibraryItem] = useState<TheoryLibraryItem | null>(null);
+    const [theoryLibrary, setTheoryLibrary] = useState<TeoriaLibraryItem[]>([]);
+    const [selectedTheoryLibraryItem, setSelectedTheoryLibraryItem] = useState<TeoriaLibraryItem | null>(null);
     const [editingTheoryItem, setEditingTheoryItem] = useState<TeoriaItem>(EMPTY_EDITING_THEORY);
     const [selectedTheoryTipo, setSelectedTheoryTipo] = useState<string>('');
     const [selectedTheorySubtipo, setSelectedTheorySubtipo] = useState<string>('');
@@ -334,10 +334,12 @@ export function useMomentosProceso() {
                 adaptaciones: 'adaptaciones_json'
             };
 
+            const isMomentoFormativo = ['practica', 'teoria', 'produccion', 'valoracion'].includes(tab);
+
             const updatedWeekData = {
                 ...currentWeekData,
                 momentos: updatedMomentos,
-                consolidado: 0
+                consolidado: isMomentoFormativo ? 0 : currentWeekData.consolidado
             };
 
             // Si es recursos o fuentes, actualizamos también su campo _json
@@ -355,30 +357,31 @@ export function useMomentosProceso() {
     // ─────────────────────────────────────────────────────────────────────────
     // HANDLERS: Práctica
     // ─────────────────────────────────────────────────────────────────────────
-    const handleSavePractica = async () => {
+    const handleSavePractica = async (itemOverride?: any) => {
         const weekPlanId = weekPlanningIds?.[activeWeek];
         if (!weekPlanId) {
             showError('No hay una ID de planificación para esta semana. Asegúrate de haberla creado en el paso anterior.');
             return;
         }
 
+        const item = itemOverride || editingItem;
         setIsSaving(true);
         try {
             // Limpieza de ID: Si es temporal, no lo enviamos
-            const idVal = editingItem.id_practica;
+            const idVal = item.id_practica;
             const cleanId = (idVal && !String(idVal).startsWith('temp-')) ? idVal : undefined;
 
             // Payload explícito para evitar errores de columnas inexistentes
             const payload = {
                 id_practica: cleanId,
                 planificacion_semanal_id: weekPlanId,
-                nombre_practica: editingItem.nombre_practica?.trim() || 'Actividad Práctica',
-                preguntas: editingItem.preguntas || '',
-                redactado: editingItem.redactado || '',
-                tipo: editingItem.tipo || '',
-                proposito: editingItem.proposito || '',
-                descripcion_concreta: editingItem.descripcion_concreta || '',
-                codigo_biblioteca_practica: editingItem.codigo_biblioteca_practica ? Number(editingItem.codigo_biblioteca_practica) : null
+                nombre_practica: item.nombre_practica?.trim() || 'Actividad Práctica',
+                preguntas: item.preguntas || '',
+                redactado: item.redactado || '',
+                tipo: item.tipo || '',
+                proposito: item.proposito || '',
+                descripcion_concreta: item.descripcion_concreta || '',
+                codigo_biblioteca_practica: item.codigo_biblioteca_practica ? Number(item.codigo_biblioteca_practica) : null
             };
 
             const res = await PracticasService.upsertPractica(payload);
@@ -437,27 +440,28 @@ export function useMomentosProceso() {
 
     // HANDLERS: Teoría
     // ─────────────────────────────────────────────────────────────────────────
-    const handleSaveTheory = async () => {
+    const handleSaveTheory = async (itemOverride?: any) => {
         const weekPlanId = weekPlanningIds?.[activeWeek];
         if (!weekPlanId) {
             showError('No hay una ID de planificación para esta semana.');
             return;
         }
 
+        const item = itemOverride || editingTheoryItem;
         setIsSaving(true);
         try {
-            const idVal = editingTheoryItem.id_teoria;
+            const idVal = item.id_teoria;
             const cleanId = (idVal && !String(idVal).startsWith('temp-')) ? idVal : undefined;
 
             const payload = {
                 id_teoria: cleanId,
                 planificacion_semanal_id: weekPlanId,
-                nombre_estrategia_teorica: editingTheoryItem.nombre_estrategia_teorica?.trim() || 'Estrategia Teórica',
-                redactado: editingTheoryItem.redactado || '',
-                tipo: editingTheoryItem.tipo || '',
-                proposito: editingTheoryItem.proposito || '',
-                descripcion_concreta: editingTheoryItem.descripcion_concreta || '',
-                codigo_biblioteca_teoria: editingTheoryItem.codigo_biblioteca_teoria ? Number(editingTheoryItem.codigo_biblioteca_teoria) : null
+                nombre_estrategia_teorica: item.nombre_estrategia_teorica?.trim() || 'Estrategia Teórica',
+                redactado: item.redactado || '',
+                tipo: item.tipo || '',
+                proposito: item.proposito || '',
+                descripcion_concreta: item.descripcion_concreta || '',
+                codigo_biblioteca_teoria: item.codigo_biblioteca_teoria ? Number(item.codigo_biblioteca_teoria) : null
             };
 
             const res = await TheoryService.upsertTheory(payload);
@@ -512,30 +516,31 @@ export function useMomentosProceso() {
     // ─────────────────────────────────────────────────────────────────────────
     // HANDLERS: Producción
     // ─────────────────────────────────────────────────────────────────────────
-    const handleSaveProduccion = async () => {
+    const handleSaveProduccion = async (itemOverride?: any) => {
         const weekPlanId = weekPlanningIds?.[activeWeek];
         if (!weekPlanId) {
             showError('No hay una ID de planificación para esta semana.');
             return;
         }
 
+        const item = itemOverride || editingProduccionItem;
         setIsSaving(true);
         try {
-            const idVal = editingProduccionItem.id_produccion;
+            const idVal = item.id_produccion;
             const cleanId = (idVal && !String(idVal).startsWith('temp-')) ? idVal : undefined;
 
             const payload = {
                 id_produccion: cleanId,
                 planificacion_semanal_id: weekPlanId,
-                nombre_produccion: editingProduccionItem.nombre_produccion?.trim() || 'Producto de Producción',
-                instrumento: editingProduccionItem.instrumento || '',
-                redactado: editingProduccionItem.redactado || '',
-                nivel: editingProduccionItem.nivel || '',
-                subnivel: editingProduccionItem.subnivel || '',
-                tipo: editingProduccionItem.tipo || '',
-                proposito: editingProduccionItem.proposito || '',
-                descripcion_concreta: editingProduccionItem.descripcion_concreta || '',
-                codigo_biblioteca_produccion: editingProduccionItem.codigo_biblioteca_produccion ? Number(editingProduccionItem.codigo_biblioteca_produccion) : null
+                nombre_produccion: item.nombre_produccion?.trim() || 'Producto de Producción',
+                instrumento: item.instrumento || '',
+                redactado: item.redactado || '',
+                nivel: item.nivel || '',
+                subnivel: item.subnivel || '',
+                tipo: item.tipo || '',
+                proposito: item.proposito || '',
+                descripcion_concreta: item.descripcion_concreta || '',
+                codigo_biblioteca_produccion: item.codigo_biblioteca_produccion ? Number(item.codigo_biblioteca_produccion) : null
             };
 
             const res = await ProduccionService.upsertProduccion(payload as Partial<ProduccionItem>);
@@ -590,28 +595,29 @@ export function useMomentosProceso() {
     // ─────────────────────────────────────────────────────────────────────────
     // HANDLERS: Valoración
     // ─────────────────────────────────────────────────────────────────────────
-    const handleSaveValoracion = async () => {
+    const handleSaveValoracion = async (itemOverride?: any) => {
         const weekPlanId = weekPlanningIds?.[activeWeek];
         if (!weekPlanId) {
             showError('No hay una ID de planificación para esta semana.');
             return;
         }
 
+        const item = itemOverride || editingValoracionItem;
         setIsSaving(true);
         try {
-            const idVal = editingValoracionItem.id_valoracion;
+            const idVal = item.id_valoracion;
             const cleanId = (idVal && !String(idVal).startsWith('temp-')) ? idVal : undefined;
 
             const payload = {
                 id_valoracion: cleanId,
                 planificacion_semanal_id: weekPlanId,
-                categoria: editingValoracionItem.categoria || 'Actividad de Valoración',
-                subcategoria: editingValoracionItem.subcategoria || '',
-                proposito: editingValoracionItem.proposito || '',
-                preguntas: editingValoracionItem.preguntas || '',
-                redactado: editingValoracionItem.redactado || '',
-                instrumento: editingValoracionItem.instrumento || '',
-                codigo_biblioteca_valoracion: editingValoracionItem.codigo_biblioteca_valoracion ? Number(editingValoracionItem.codigo_biblioteca_valoracion) : null
+                categoria: item.categoria || 'Actividad de Valoración',
+                subcategoria: item.subcategoria || '',
+                proposito: item.proposito || '',
+                preguntas: item.preguntas || '',
+                redactado: item.redactado || '',
+                instrumento: item.instrumento || '',
+                codigo_biblioteca_valoracion: item.codigo_biblioteca_valoracion ? Number(item.codigo_biblioteca_valoracion) : null
             };
 
             const res = await ValoracionService.upsertValoracion(payload as Partial<ValoracionItem>);
@@ -665,30 +671,31 @@ export function useMomentosProceso() {
     // ─────────────────────────────────────────────────────────────────────────
     // HANDLERS: Adaptaciones
     // ─────────────────────────────────────────────────────────────────────────
-    const handleSaveAdaptacion = async () => {
+    const handleSaveAdaptacion = async (itemOverride?: any) => {
         const weekPlanId = weekPlanningIds?.[activeWeek];
         if (!weekPlanId) {
             showError('No hay una ID de planificación para esta semana.');
             return;
         }
 
+        const item = itemOverride || editingAdaptacionItem;
         setIsSaving(true);
         try {
-            const idVal = editingAdaptacionItem.id_adaptacion_basica;
+            const idVal = item.id_adaptacion_basica;
             const cleanId = (idVal && !String(idVal).startsWith('temp-')) ? idVal : undefined;
 
             // Limpiar el payload para evitar campos undefined que rompen Supabase
             const payload: any = {
                 planificacion_semanal_id: weekPlanId,
-                nombre_adaptacion: editingAdaptacionItem.nombre_adaptacion?.trim() || 'Adaptación Curricular',
-                descripcion_situacion: editingAdaptacionItem.descripcion_situacion || '',
-                proposito: editingAdaptacionItem.proposito || editingAdaptacionItem.estrategia_metodologica || '',
-                tipo: editingAdaptacionItem.tipo || editingAdaptacionItem.tipo_adaptacion || '',
-                situacion: editingAdaptacionItem.situacion || '',
-                apto_para: editingAdaptacionItem.apto_para || '',
-                redactado: editingAdaptacionItem.redactado || '',
-                codigo_biblioteca_adaptacion: editingAdaptacionItem.codigo_biblioteca_adaptacion 
-                    ? Number(editingAdaptacionItem.codigo_biblioteca_adaptacion) 
+                nombre_adaptacion: item.nombre_adaptacion?.trim() || 'Adaptación Curricular',
+                descripcion_situacion: item.descripcion_situacion || '',
+                proposito: item.proposito || (item as any).estrategia_metodologica || '',
+                tipo: item.tipo || (item as any).tipo_adaptacion || '',
+                situacion: item.situacion || '',
+                apto_para: item.apto_para || '',
+                redactado: item.redactado || '',
+                codigo_biblioteca_adaptacion: item.codigo_biblioteca_adaptacion 
+                    ? Number(item.codigo_biblioteca_adaptacion) 
                     : null
             };
 
@@ -751,26 +758,27 @@ export function useMomentosProceso() {
     // ─────────────────────────────────────────────────────────────────────────
     // HANDLERS: Recursos
     // ─────────────────────────────────────────────────────────────────────────
-    const handleSaveRecurso = async () => {
+    const handleSaveRecurso = async (itemOverride?: any) => {
         const weekPlanId = weekPlanningIds?.[activeWeek];
         if (!weekPlanId) {
             showError('No hay una ID de planificación para esta semana.');
             return;
         }
 
+        const item = itemOverride || editingRecursoItem;
         setIsSaving(true);
         try {
-            const idVal = editingRecursoItem.id_recursos;
+            const idVal = item.id_recursos;
             const cleanId = (idVal && !String(idVal).startsWith('temp-')) ? idVal : undefined;
 
             const payload = {
                 id_recursos: cleanId,
                 planificacion_semanal_id: weekPlanId,
-                recursos: editingRecursoItem.recursos?.trim() || 'Recurso de apoyo',
-                tipo: editingRecursoItem.tipo || '',
-                apto_para: editingRecursoItem.apto_para || '',
-                redactado: editingRecursoItem.redactado || '',
-                codigo_biblioteca_recursos: editingRecursoItem.codigo_biblioteca_recursos ? Number(editingRecursoItem.codigo_biblioteca_recursos) : null
+                recursos: item.recursos?.trim() || 'Recurso de apoyo',
+                tipo: item.tipo || '',
+                apto_para: item.apto_para || '',
+                redactado: item.redactado || '',
+                codigo_biblioteca_recursos: item.codigo_biblioteca_recursos ? Number(item.codigo_biblioteca_recursos) : null
             };
 
             const res = await RecursosService.upsertRecurso(payload);
@@ -826,21 +834,22 @@ export function useMomentosProceso() {
     // ─────────────────────────────────────────────────────────────────────────
 
     /** Guarda o actualiza en biblioteca_mi_fuente (la biblioteca personal del docente). */
-    const handleSaveMiFuente = async () => {
-        console.log('[handleSaveMiFuente] Iniciando guardado...', editingFuenteItem);
+    const handleSaveMiFuente = async (itemOverride?: any) => {
+        const item = itemOverride || editingFuenteItem;
+        console.log('[handleSaveMiFuente] Iniciando guardado...', item);
         setIsSaving(true);
         try {
-            const idVal = editingFuenteItem.id_mi_fuente;
+            const idVal = item.id_mi_fuente;
             const isNew = !idVal || String(idVal).startsWith('temp-');
             
             // Construimos el payload de forma segura
             const payload: any = {
-                titulo_fuente: editingFuenteItem.titulo_fuente?.trim() || 'Nueva Fuente',
-                autor: editingFuenteItem.autor || '',
-                anio: editingFuenteItem.anio || '',
-                url: editingFuenteItem.url || '',
-                detalle: editingFuenteItem.detalle || '',
-                tipo: (editingFuenteItem.tipo && editingFuenteItem.tipo !== '') ? Number(editingFuenteItem.tipo) : null
+                titulo_fuente: item.titulo_fuente?.trim() || 'Nueva Fuente',
+                autor: item.autor || '',
+                anio: item.anio || '',
+                url: item.url || '',
+                detalle: item.detalle || '',
+                tipo: (item.tipo && item.tipo !== '') ? Number(item.tipo) : null
             };
 
             // Solo incluimos el ID si no es nuevo (edición)
@@ -885,7 +894,7 @@ export function useMomentosProceso() {
         try {
             const payload = {
                 planificacion_semanal_id: weekPlanId,
-                tipo: libraryItem.tipo,
+                tipo: libraryItem.tipo || '',
                 autor: libraryItem.autor,
                 anio: libraryItem.anio,
                 titulo_fuente: libraryItem.titulo_fuente,
@@ -948,12 +957,6 @@ export function useMomentosProceso() {
         const weekId = weekPlanningIds?.[activeWeek];
         if (!weekId) {
             showError('No se encontró el ID de planificación semanal. Asegúrate de haber guardado el paso anterior.');
-            return;
-        }
-
-        if (!items || items.length === 0) {
-            showError('No hay elementos para guardar. Asegúrate de que la lista no esté vacía.');
-            setIsSaving(false);
             return;
         }
 

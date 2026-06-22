@@ -11,6 +11,7 @@ export function DataReferential() {
         mainAreaDetails,
         userProfile,
         selectedTrimestre,
+        selectedMes,
         pdcDates
     } = usePdcWizard();
 
@@ -26,7 +27,7 @@ export function DataReferential() {
         try {
             return new Date(dateStr + 'T00:00:00').toLocaleDateString('es-ES', {
                 day: '2-digit',
-                month: 'long',
+                month: '2-digit',
                 year: 'numeric'
             });
         } catch (e) {
@@ -65,7 +66,11 @@ export function DataReferential() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <InfoRow
                     label="Distrito Educativo"
-                    value={mainAreaDetails?.unidad_educativa?.distrito?.nombre || 'S/N'}
+                    value={
+                        (Array.isArray(mainAreaDetails?.unidad_educativa?.distrito)
+                            ? (mainAreaDetails?.unidad_educativa?.distrito as any)[0]?.nombre
+                            : (mainAreaDetails?.unidad_educativa?.distrito as any)?.nombre) || 'S/N'
+                    }
                     icon="location_on"
                 />
                 <InfoRow
@@ -124,14 +129,23 @@ export function DataReferential() {
                         </div>
                     </div>
 
-                    <div className="flex flex-col md:items-end gap-1">
-                        <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-widest">
-                            <span className="material-symbols-rounded text-sm">schedule</span>
-                            Cronograma de Actividades
+                    <div className="flex flex-col md:items-end gap-3">
+                        <div className="flex items-center gap-4">
+                            <div className="flex flex-col items-end">
+                                <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Mes Planificado</div>
+                                <div className="text-xl font-black text-slate-900 tracking-tighter">MES {selectedMes || '---'}</div>
+                            </div>
+                            <div className="h-8 w-px bg-slate-100" />
+                            <div className="flex flex-col md:items-end">
+                                <div className="flex items-center gap-2 text-slate-400 font-bold text-[9px] uppercase tracking-widest">
+                                    <span className="material-symbols-rounded text-xs">schedule</span>
+                                    Vigencia
+                                </div>
+                                <p className="text-sm font-black text-blue-600 tracking-tighter bg-blue-50 px-3 py-1 rounded-lg border border-blue-100">
+                                    {formatDate(pdcDates.inicio)} al {formatDate(pdcDates.fin)}
+                                </p>
+                            </div>
                         </div>
-                        <p className="text-lg font-black text-blue-600 tracking-tighter bg-blue-50 px-4 py-1 rounded-xl border border-blue-100">
-                            Del {formatDate(pdcDates.inicio)} al {formatDate(pdcDates.fin)}
-                        </p>
                     </div>
                 </div>
             </div>

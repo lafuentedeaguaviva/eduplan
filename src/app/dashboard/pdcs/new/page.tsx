@@ -20,7 +20,7 @@ import { Suspense } from 'react';
 /**
  * Main entry point: Wraps the content with the Controller (PdcWizardProvider)
  */
-export default function NewPdcPage() {
+export default function NewPdcPage() { console.log('Rendering NewPdcPage!');
     return (
         <Suspense fallback={<p>Cargando...</p>}>
             <PdcWizardProvider>
@@ -110,7 +110,7 @@ function NewPdcContent() {
                                     <div className="size-5 border-3 border-white border-t-transparent rounded-full animate-spin"></div>
                                 ) : (
                                     <>
-                                        <span>{step === 12 && currentAreaIndex === selectedAreas.length - 1 ? 'FINALIZAR' : 'Continuar'}</span>
+                                        <span>{step === 12 ? 'FINALIZAR' : 'Continuar'}</span>
                                         <div className="size-9 bg-white/20 text-white rounded-xl flex items-center justify-center group-hover/next:translate-x-1 transition-transform">
                                             <ArrowRight className="w-5 h-5" />
                                         </div>
@@ -120,38 +120,46 @@ function NewPdcContent() {
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-12">
-                        {step >= 4 && selectedAreas.length > 1 && (
-                            <div className="flex bg-slate-100/30 backdrop-blur-md p-2 rounded-3xl border border-slate-200/50 shadow-inner gap-2">
-                                {selectedAreas.map((areaId, idx) => {
+                    {/* Area Selector - Refined positioning */}
+                </div>
+
+                {/* Second Row: Area Selector - Now more prominent and 'lower' */}
+                {step >= 4 && step < 11 && selectedAreas.length > 1 && (
+                    <div className="max-w-[1700px] mx-auto w-full mt-4 animate-in slide-in-from-top-2 duration-500">
+                        <div className="flex items-center gap-3 p-1.5 bg-slate-100/30 rounded-[2rem] border border-slate-200/40 w-fit">
+                            <div className="pl-4 pr-3 text-[9px] font-black text-slate-400 uppercase tracking-widest border-r border-slate-200/60">
+                                Áreas en planificación
+                            </div>
+                            <div className="flex gap-2 overflow-x-auto no-scrollbar max-w-[1200px] py-0.5">
+                                {selectedAreas.map((areaId, originalIdx) => {
                                     const areaData = areas.find(a => a.id === areaId);
-                                    const isActive = currentAreaIndex === idx;
+                                    const isActive = currentAreaIndex === originalIdx;
                                     const isDone = !!areasDesignState[areaId]?.learningObjectives?.length;
 
                                     return (
                                         <button
                                             key={areaId}
-                                            onClick={() => jumpToArea(idx)}
-                                            className={`px-6 py-3 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-3 relative overflow-hidden group/area ${isActive
-                                                ? 'bg-white text-blue-600 shadow-xl ring-1 ring-blue-50 scale-105 z-10'
-                                                : 'text-slate-400 hover:text-slate-700 hover:bg-white/60'
+                                            onClick={() => jumpToArea(originalIdx)}
+                                            className={`px-6 py-2.5 rounded-[1.25rem] text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-2 whitespace-nowrap group/area relative ${isActive
+                                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20 scale-105 z-10'
+                                                : 'bg-white/50 text-slate-500 hover:text-blue-600 hover:bg-white border border-slate-200/50'
                                                 }`}
                                         >
-                                            {isActive && (
-                                                <div className="absolute inset-0 bg-gradient-to-tr from-blue-50/50 via-transparent to-cyan-50/50 opacity-100"></div>
+                                            <span className="relative z-10">{areaData?.area_conocimiento?.nombre || '...'}</span>
+                                            {isDone && !isActive && (
+                                                <CheckCircle2 className="size-3 text-emerald-500" />
                                             )}
-                                            <span className="relative z-10">{areaData?.area_conocimiento?.nombre || 'Cargando...'}</span>
-                                            {isDone && (
-                                                <CheckCircle2 className="relative z-10 size-4 text-emerald-500 fill-emerald-50" />
+                                            {isActive && (
+                                                <div className="size-1.5 bg-white rounded-full animate-pulse shadow-[0_0_8px_white]" />
                                             )}
                                         </button>
                                     );
                                 })}
                             </div>
-                        )}
+                        </div>
                     </div>
+                )}
                 </div>
-            </div>
 
             {/* Main Content Area */}
             <main className="max-w-[1800px] mx-auto px-12 pt-20">

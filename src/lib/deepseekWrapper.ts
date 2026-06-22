@@ -17,13 +17,13 @@ export const deepseek = {
         const url = "https://api.deepseek.com/v1/chat/completions";
         
         const body = {
-            model: "deepseek-chat", // O "deepseek-reasoner" para el modelo R1
+            model: "deepseek-chat",
             messages: [
                 ...(systemContext ? [{ role: "system", content: systemContext }] : []),
                 { role: "user", content: prompt }
             ],
             temperature: 0.7,
-            max_tokens: 4096, // DeepSeek soporta contextos amplios
+            max_tokens: 8192, // Aumentado para contextos amplios y batch processing
             stream: false
         };
 

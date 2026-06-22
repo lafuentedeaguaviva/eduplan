@@ -30,6 +30,12 @@ export function ObjetivosAprendizaje() {
         complementCategories,
         selectedCompCategory,
         setSelectedCompCategory,
+        complementFilters,
+        setComplementFilters,
+        complementSubCategories,
+        allComplementLevels,
+        showCompFilters,
+        setShowCompFilters,
         filteredComplementos,
         hoveredComplement,
         setHoveredComplement,
@@ -45,7 +51,8 @@ export function ObjetivosAprendizaje() {
         handleToggleExpanded,
         isStep6Complete,
         pendingContentsCount,
-        loadObjectiveForEdit
+        loadObjectiveForEdit,
+        toggleComplementNivelFilter
     } = useObjetivosAprendizaje();
 
     return (
@@ -105,6 +112,13 @@ export function ObjetivosAprendizaje() {
                             complementCategories={complementCategories}
                             selectedCompCategory={selectedCompCategory}
                             setSelectedCompCategory={setSelectedCompCategory}
+                            complementFilters={complementFilters}
+                            setComplementFilters={setComplementFilters}
+                            complementSubCategories={complementSubCategories}
+                            allComplementLevels={allComplementLevels}
+                            showCompFilters={showCompFilters}
+                            setShowCompFilters={setShowCompFilters}
+                            toggleComplementNivelFilter={toggleComplementNivelFilter}
                             filteredComplementos={filteredComplementos}
                             complementSearch={complementSearch}
                             setComplementSearch={setComplementSearch}

@@ -1,9 +1,9 @@
-import { supabase } from '@/lib/supabase';
+import { createSupabaseBrowserClient } from '@/lib/supabase';
 
 /**
  * Proxy for the unified Supabase Browser Client.
- * Kept for backward compatibility with components using @/utils/supabase/client.
+ * Creates a client using `@supabase/ssr` to prevent React Strict Mode lock issues.
  */
 export function createClient() {
-    return supabase;
+    return createSupabaseBrowserClient();
 }

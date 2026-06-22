@@ -1,76 +1,29 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-
-const CATEGORIES = [
-    { id: 'all', label: 'Todos', icon: 'apps' },
-    { id: 'templates', label: 'Plantillas', icon: 'description' },
-    { id: 'strategies', label: 'Estrategias', icon: 'psychology' },
-    { id: 'regulations', label: 'Normativas', icon: 'gavel' },
-    { id: 'tools', label: 'Herramientas', icon: 'handyman' },
-];
-
-const RESOURCES = [
-    {
-        id: 1,
-        title: "Plantilla PDC 2026 - Multigrado",
-        category: 'templates',
-        description: "Formato oficial actualizado para unidades educativas multigrado con enfoque descolonizador.",
-        type: "DOCX / PDF",
-        premium: false,
-    },
-    {
-        id: 2,
-        title: "Guía de Estrategias Metodológicas",
-        category: 'strategies',
-        description: "Más de 50 técnicas activas para los momentos de Práctica y Teoría en el aula.",
-        type: "PDF",
-        premium: true,
-    },
-    {
-        id: 3,
-        title: "Ley 070 Avelino Siñani - Resumen",
-        category: 'regulations',
-        description: "Infografía y puntos clave de la normativa vigente para la planificación curricular.",
-        type: "INFOGRAFÍA",
-        premium: false,
-    },
-    {
-        id: 4,
-        title: "Calculadora de Carga Horaria",
-        category: 'tools',
-        description: "Herramienta Excel para distribuir periodos según el plan de estudios vigente.",
-        type: "EXCEL",
-        premium: true,
-    },
-    {
-        id: 5,
-        title: "Protocolo de Adaptaciones Curriculares",
-        category: 'strategies',
-        description: "Pasos para implementar adaptaciones de grado 1, 2 y 3 según el grado de discapacidad.",
-        type: "GUÍA TÉCNICA",
-        premium: true,
-    },
-    {
-        id: 6,
-        title: "Registro Pedagógico Automatizado",
-        category: 'templates',
-        description: "Sistema de evaluación con centralizador de notas y asistencia integrado.",
-        type: "SISTEMA EXCEL",
-        premium: true,
-    }
-];
+import { useAdminController } from '@/hooks/useAdminController';
 
 export default function ResourcesPage() {
+    const { 
+        resourceCategories: categories, 
+        teacherResources: resources, 
+        loading, 
+        loadResourcesData 
+    } = useAdminController();
+    
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
 
-    const filteredResources = RESOURCES.filter(res => {
-        const matchesCategory = selectedCategory === 'all' || res.category === selectedCategory;
+    useEffect(() => {
+        // En esta página no llamamos a checkAccess porque es para todos los docentes
+        loadResourcesData(selectedCategory);
+    }, [selectedCategory]);
+
+    const filteredResources = resources.filter(res => {
         const matchesSearch = res.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                             res.description.toLowerCase().includes(searchQuery.toLowerCase());
-        return matchesCategory && matchesSearch;
+                             res.descripcion?.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesSearch;
     });
 
     return (
@@ -111,7 +64,19 @@ export default function ResourcesPage() {
             <div className="space-y-8">
                 {/* Category Tabs */}
                 <div className="flex items-center gap-3 overflow-x-auto pb-4 no-scrollbar">
-                    {CATEGORIES.map((cat) => (
+                    <button
+                        onClick={() => setSelectedCategory('all')}
+                        className={cn(
+                            "flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all border shrink-0",
+                            selectedCategory === 'all'
+                            ? "bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-900/20"
+                            : "bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-white"
+                        )}
+                    >
+                        <span className="material-symbols-rounded text-lg">apps</span>
+                        Todos
+                    </button>
+                    {categories.map((cat) => (
                         <button
                             key={cat.id}
                             onClick={() => setSelectedCategory(cat.id)}
@@ -122,59 +87,69 @@ export default function ResourcesPage() {
                                 : "bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-white"
                             )}
                         >
-                            <span className="material-symbols-rounded text-lg">{cat.icon}</span>
-                            {cat.label}
+                            <span className="material-symbols-rounded text-lg">{cat.icono || 'folder'}</span>
+                            {cat.nombre}
                         </button>
                     ))}
                 </div>
 
                 {/* Resources Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredResources.map((res) => (
-                        <div 
-                            key={res.id}
-                            className="group relative bg-slate-900 border border-slate-800 rounded-[2.5rem] p-8 hover:border-indigo-500/30 hover:shadow-2xl hover:shadow-indigo-900/10 transition-all duration-500 flex flex-col"
-                        >
-                            {res.premium && (
-                                <div className="absolute top-6 right-6">
-                                    <div className="bg-amber-500/10 text-amber-500 border border-amber-500/20 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
-                                        <span className="material-symbols-rounded text-[14px]">workspace_premium</span>
-                                        <span className="text-[9px] font-black uppercase tracking-wider">Premium</span>
+                {loading ? (
+                    <div className="py-20 flex flex-col items-center justify-center gap-4">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+                        <p className="text-slate-500 font-black uppercase tracking-widest text-[10px]">Cargando materiales...</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {filteredResources.map((res) => (
+                            <div 
+                                key={res.id}
+                                className="group relative bg-slate-900 border border-slate-800 rounded-[2.5rem] p-8 hover:border-indigo-500/30 hover:shadow-2xl hover:shadow-indigo-900/10 transition-all duration-500 flex flex-col"
+                            >
+                                {res.premium && (
+                                    <div className="absolute top-6 right-6">
+                                        <div className="bg-amber-500/10 text-amber-500 border border-amber-500/20 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
+                                            <span className="material-symbols-rounded text-[14px]">workspace_premium</span>
+                                            <span className="text-[9px] font-black uppercase tracking-wider">Premium</span>
+                                        </div>
                                     </div>
+                                )}
+
+                                <div className="size-14 bg-slate-950 rounded-2xl border border-slate-800 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-500">
+                                    <span className="material-symbols-rounded text-2xl">
+                                        {categories.find(c => c.id === res.categoria_id)?.icono || 'description'}
+                                    </span>
                                 </div>
-                            )}
 
-                            <div className="size-14 bg-slate-950 rounded-2xl border border-slate-800 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-500">
-                                <span className="material-symbols-rounded text-2xl">
-                                    {res.category === 'templates' ? 'description' : 
-                                     res.category === 'strategies' ? 'psychology' : 
-                                     res.category === 'regulations' ? 'gavel' : 'handyman'}
-                                </span>
-                            </div>
-
-                            <div className="flex-1 space-y-3">
-                                <h3 className="text-xl font-black text-white group-hover:text-indigo-400 transition-colors line-clamp-2">
-                                    {res.title}
-                                </h3>
-                                <p className="text-slate-500 text-sm font-medium leading-relaxed line-clamp-3">
-                                    {res.description}
-                                </p>
-                            </div>
-
-                            <div className="mt-8 pt-6 border-t border-slate-800/50 flex items-center justify-between">
-                                <div className="space-y-1">
-                                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Formato</p>
-                                    <p className="text-xs font-bold text-slate-400 uppercase">{res.type}</p>
+                                <div className="flex-1 space-y-3">
+                                    <h3 className="text-xl font-black text-white group-hover:text-indigo-400 transition-colors line-clamp-2">
+                                        {res.titulo}
+                                    </h3>
+                                    <p className="text-slate-500 text-sm font-medium leading-relaxed line-clamp-3">
+                                        {res.descripcion}
+                                    </p>
                                 </div>
-                                <button className="size-12 rounded-2xl bg-indigo-600/10 text-indigo-400 hover:bg-indigo-600 hover:text-white transition-all flex items-center justify-center border border-indigo-500/20">
-                                    <span className="material-symbols-rounded">download</span>
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
 
-                {filteredResources.length === 0 && (
+                                <div className="mt-8 pt-6 border-t border-slate-800/50 flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Formato</p>
+                                        <p className="text-xs font-bold text-slate-400 uppercase">{res.tipo_archivo} {res.peso_archivo && `• ${res.peso_archivo}`}</p>
+                                    </div>
+                                    <a 
+                                        href={res.url_archivo} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="size-12 rounded-2xl bg-indigo-600/10 text-indigo-400 hover:bg-indigo-600 hover:text-white transition-all flex items-center justify-center border border-indigo-500/20"
+                                    >
+                                        <span className="material-symbols-rounded">download</span>
+                                    </a>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {!loading && filteredResources.length === 0 && (
                     <div className="py-20 text-center space-y-4 bg-slate-900/30 rounded-[3rem] border border-slate-800 border-dashed">
                         <span className="material-symbols-rounded text-6xl text-slate-700">search_off</span>
                         <h3 className="text-xl font-bold text-slate-400">No encontramos resultados</h3>

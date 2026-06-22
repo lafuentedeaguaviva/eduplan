@@ -7,6 +7,8 @@ import { AreasService } from '@/services/areas.service';
 import { CatalogService } from '@/services/catalog.service';
 import { UserContent, LearningObjective, WeekDesign, CatalogoVerbo, CatalogoComplemento } from '@/types';
 
+import { getMesInTrimester } from '@/lib/utils';
+
 /**
  * Hook: usePdcDesignLogic
  * 
@@ -87,8 +89,11 @@ export function usePdcDesignLogic(state: any, helpers: any) {
     const addStrategicObjective = async () => {
         if (!currentObjective.draft) return;
 
+        const draftText = currentObjective.draft.trim();
+        const capitalizedText = draftText.charAt(0).toUpperCase() + draftText.slice(1);
+
         const newObjective: LearningObjective = {
-            text: currentObjective.draft,
+            text: capitalizedText,
             contentIds: currentObjective.contentIds
         };
 
@@ -124,10 +129,19 @@ export function usePdcDesignLogic(state: any, helpers: any) {
                     if (isEditing && originalObjectiveText) {
                         await PdcDesignService.deleteStrategicObjective(pdcAreaTrabajoId, originalObjectiveText);
                     }
-                    await PdcDesignService.addStrategicObjective(pdcAreaTrabajoId, newObjective);
+                    const addRes = await PdcDesignService.addStrategicObjective(pdcAreaTrabajoId, newObjective);
+                    if (!addRes.success) {
+                        console.error('Error adding objective to DB:', addRes.error);
+                        showError('Error de guardado', 'No se pudo guardar el objetivo en la base de datos.');
+                    } else {
+                        showSuccess('Objetivo Guardado', 'Se ha guardado correctamente.');
+                    }
+                } else {
+                    console.error('No se encontró pdcAreaTrabajoId para guardar el objetivo');
                 }
             } catch (error) {
                 console.error('Design Logic Error [addStrategicObjective]:', error);
+                showError('Error de guardado', 'Ocurrió un error inesperado al guardar.');
             }
         }
     };
@@ -185,7 +199,8 @@ export function usePdcDesignLogic(state: any, helpers: any) {
         }
     };
 
-    const loadStep3Data = async (areaId: string, trimestre: number, mes: number) => {
+    const loadStep3Data = async (areaId: string, trimestre: number, mes: number, pdcIdOverride?: string) => {
+        console.log(`[DEBUG_START] loadStep3Data called with areaId: ${areaId}, trimestre: ${trimestre}, mes: ${mes}, pdcIdOverride: ${pdcIdOverride}, currentPdcId: ${currentPdcId}`);
         if (!areaId) return;
 
         try {
@@ -204,11 +219,24 @@ export function usePdcDesignLogic(state: any, helpers: any) {
 
             if (planningHeaders.length > 0) {
                 // Filtrar solo las semanas que pertenecen al MES seleccionado
-                const monthHeaders = planningHeaders.filter(h => h.mes === mes);
+                // IMPORTANTE: Normalizar el mes absoluto a relativo al trimestre (1-3) para coincidir con la DB
+                const relativeMes = getMesInTrimester(mes);
+                const monthHeaders = planningHeaders.filter(h => h.mes === relativeMes);
                 
                 const newWeekPlanningIds: Record<number, string> = {};
                 monthHeaders.forEach(h => { newWeekPlanningIds[h.semana] = h.id; });
                 setWeekPlanningIds({ ...newWeekPlanningIds });
+
+                if (monthHeaders.length > 0) {
+                    const firstHeader = monthHeaders[0];
+                    const lastHeader = monthHeaders[monthHeaders.length - 1];
+                    const newInicio = firstHeader.fecha_inicio_mes || firstHeader.fecha_inicio_semana || firstHeader.fecha_inicio_trimestre || state.pdcDates.inicio;
+                    const newFin = firstHeader.fecha_fin_mes || lastHeader.fecha_fin_semana || lastHeader.fecha_fin_trimestre || state.pdcDates.fin;
+                    
+                    if (state.pdcDates.inicio !== newInicio || state.pdcDates.fin !== newFin) {
+                        state.setPdcDates({ inicio: newInicio, fin: newFin });
+                    }
+                }
 
                 // Fallback: Asegurar que todos los contenidos referenciados en las semanas existan en allContents
                 const currentAllContents = [...(allContents || [])];
@@ -234,7 +262,7 @@ export function usePdcDesignLogic(state: any, helpers: any) {
                 monthHeaders.forEach((header: any) => {
                     const semanalContents = (header.semana_contenido || [])
                         .map((sc: any) => currentAllContents.find((c: any) => String(c.id) === String(sc.contenido_usuario_id)))
-                        .filter((c): c is UserContent => !!c);
+                        .filter((c: UserContent | undefined): c is UserContent => !!c);
                     
                     grouped[header.semana] = semanalContents;
                 });
@@ -273,18 +301,24 @@ export function usePdcDesignLogic(state: any, helpers: any) {
             }
 
             // RECUPERACIÓN DE DATOS PERSISTENTES (Objetivos y Carga Horaria)
-            if (currentPdcId) {
-                const junctionRes = await PdcDesignService.getPdcAreaJunctionId(currentPdcId, areaId);
+            const activePdcId = pdcIdOverride || currentPdcId;
+            if (activePdcId) {
+                const junctionRes = await PdcDesignService.getPdcAreaJunctionId(activePdcId, areaId);
                 if (junctionRes.success && junctionRes.data) {
                     const pdcAreaId = junctionRes.data;
                     
                     // 2. Recuperar Objetivos Estratégicos (si el estado local está vacío)
                     const needsObjectivesFetch = !areasDesignState[areaId] || !areasDesignState[areaId].learningObjectives || areasDesignState[areaId].learningObjectives.length === 0;
+                    console.log(`[DEBUG] loadStep3Data for area ${areaId}. needsObjectivesFetch: ${needsObjectivesFetch}, cached:`, areasDesignState[areaId]?.learningObjectives);
                     if (needsObjectivesFetch) {
                         const savedObjectives = await PdcDesignService.getStrategicObjectives(pdcAreaId);
+                        console.log(`[DEBUG] Fetched objectives for pdcAreaId ${pdcAreaId}:`, savedObjectives);
                         if (savedObjectives.success && savedObjectives.data && savedObjectives.data.length > 0) {
-                            console.log(`Cargando ${savedObjectives.data.length} objetivos desde DB para área ${areaId}`);
+                            console.log(`[DEBUG] Cargando ${savedObjectives.data.length} objetivos desde DB para área ${areaId}`);
                             setLearningObjectives(savedObjectives.data);
+                        } else {
+                            console.log(`[DEBUG] Cero objetivos desde DB para área ${areaId}, reseteando`);
+                            setLearningObjectives([]);
                         }
                     }
 

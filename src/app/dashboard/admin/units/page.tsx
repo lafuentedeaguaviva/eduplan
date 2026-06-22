@@ -16,6 +16,7 @@ export default function AdminUnitsPage() {
     const {
         units,
         districts,
+        directors,
         loading,
         saving,
         error: controllerError,
@@ -75,7 +76,7 @@ export default function AdminUnitsPage() {
         return (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-                <p className="text-slate-500 font-medium animate-pulse">Cargando unidades...</p>
+                <p className="text-slate-500 font-medium animate-pulse">Sincronizando red de unidades...</p>
             </div>
         );
     }
@@ -91,14 +92,14 @@ export default function AdminUnitsPage() {
                         <span>Unidades Educativas</span>
                     </div>
                 }
-                subtitle="Gestiona el catálogo central de escuelas y sedes."
+                subtitle="Gestiona el catálogo central de escuelas y asigna directores responsables."
                 actions={
                     <>
                         <div className="relative group/search hidden md:block">
                             <span className="material-symbols-rounded absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm group-focus-within/search:text-primary transition-colors">search</span>
                             <input
                                 type="text"
-                                placeholder="Buscar..."
+                                placeholder="Buscar unidad..."
                                 className="pl-10 pr-4 py-2 rounded-xl border border-slate-200 bg-white text-sm focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all w-48 outline-none"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -106,7 +107,7 @@ export default function AdminUnitsPage() {
                         </div>
                         <Button onClick={openNew} className="bg-blue-600 hover:bg-blue-700 h-11 px-6 rounded-2xl shadow-lg shadow-blue-500/20 gap-2">
                             <span className="material-symbols-rounded">add_circle</span>
-                            <span className="font-bold text-sm">Nueva Unidad</span>
+                            <span className="font-bold text-sm text-white">Nueva Unidad</span>
                         </Button>
                     </>
                 }
@@ -127,8 +128,8 @@ export default function AdminUnitsPage() {
                         <thead>
                             <tr className="bg-slate-50/50 border-b border-border text-[10px] uppercase text-slate-400 font-black tracking-widest">
                                 <th className="p-5">Nombre / Código SIE</th>
-                                <th className="p-5">Ubicación</th>
-                                <th className="p-5">Distrito / Depto</th>
+                                <th className="p-5">Ubicación / Distrito</th>
+                                <th className="p-5">Director Asignado</th>
                                 <th className="p-5 text-right">Acciones</th>
                             </tr>
                         </thead>
@@ -152,16 +153,29 @@ export default function AdminUnitsPage() {
                                             </div>
                                         </td>
                                         <td className="p-5">
-                                            <div className="flex items-center gap-2 text-sm text-slate-600">
-                                                <span className="material-symbols-rounded text-slate-300 text-lg">location_on</span>
-                                                <span className="line-clamp-1">{unit.direccion || 'Sin dirección registrada'}</span>
+                                            <div className="flex flex-col gap-1">
+                                                <div className="flex items-center gap-2 text-sm text-slate-600">
+                                                    <span className="material-symbols-rounded text-slate-300 text-lg">location_on</span>
+                                                    <span className="line-clamp-1">{unit.direccion || 'Sin dirección'}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-tighter">
+                                                    <span>{unit.distrito?.nombre}</span>
+                                                    <span className="size-1 rounded-full bg-slate-200" />
+                                                    <span>{unit.distrito?.departamento?.nombre}</span>
+                                                </div>
                                             </div>
                                         </td>
                                         <td className="p-5">
-                                            <div className="flex flex-col gap-0.5">
-                                                <span className="text-sm font-bold text-slate-700">{unit.distrito?.nombre || '-'}</span>
-                                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">{unit.distrito?.departamento?.nombre || 'Nacional'}</span>
-                                            </div>
+                                            {unit.director ? (
+                                                <div className="flex items-center gap-3">
+                                                    <div className="size-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 font-black text-[10px]">
+                                                        {unit.director.nombres?.[0]}{unit.director.apellidos?.[0]}
+                                                    </div>
+                                                    <span className="text-sm font-bold text-slate-700">{unit.director.nombres} {unit.director.apellidos}</span>
+                                                </div>
+                                            ) : (
+                                                <Badge variant="outline" className="border-dashed border-slate-200 text-slate-300">Sin director</Badge>
+                                            )}
                                         </td>
                                         <td className="p-5 text-right">
                                             <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0">
@@ -198,7 +212,7 @@ export default function AdminUnitsPage() {
                                 <h3 className="text-xl font-black text-slate-900">
                                     {isEditing ? 'Editar Unidad' : 'Nueva Unidad Educativa'}
                                 </h3>
-                                <p className="text-xs text-slate-500 font-medium">Completa los datos oficiales de la institución.</p>
+                                <p className="text-xs text-slate-500 font-medium">Configura los datos oficiales y asigna un director.</p>
                             </div>
                             <button onClick={() => setShowModal(false)} className="size-8 flex items-center justify-center rounded-full hover:bg-slate-200 text-slate-400 transition-colors">
                                 <span className="material-symbols-rounded">close</span>
@@ -234,14 +248,7 @@ export default function AdminUnitsPage() {
                                 />
                             </div>
 
-                            <Input
-                                label="Dirección / Ubicación"
-                                icon="map"
-                                placeholder="Zona Central, Calle X #Y"
-                                value={currentUnit.direccion || ''}
-                                onChange={e => setCurrentUnit({ ...currentUnit, direccion: e.target.value })}
-                            />
-
+                            {/* Selector de Distrito */}
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Distrito Educativo</label>
                                 <div className="relative group/select">
@@ -263,6 +270,28 @@ export default function AdminUnitsPage() {
                                 </div>
                             </div>
 
+                            {/* Selector de Director (NUEVO) */}
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Director Responsable</label>
+                                <div className="relative group/select">
+                                    <span className="material-symbols-rounded absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within/select:text-primary transition-colors text-lg">shield_person</span>
+                                    <select
+                                        className="w-full bg-slate-50 border border-border rounded-xl py-3 pl-11 pr-4 text-sm font-medium text-foreground transition-all duration-200 outline-none focus:ring-4 focus:ring-primary/10 focus:border-primary appearance-none"
+                                        value={currentUnit.director_id || ''}
+                                        onChange={e => setCurrentUnit({ ...currentUnit, director_id: e.target.value || undefined })}
+                                    >
+                                        <option value="">Sin asignar director...</option>
+                                        {directors.map(dir => (
+                                            <option key={dir.id} value={dir.id}>
+                                                {dir.nombres} {dir.apellidos} ({dir.email})
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <span className="material-symbols-rounded absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">expand_more</span>
+                                </div>
+                                <p className="text-[10px] text-slate-400 ml-1 italic">Solo aparecen usuarios con el rol "Director" activo.</p>
+                            </div>
+
                             <div className="pt-4 flex justify-end gap-3">
                                 <Button
                                     type="button"
@@ -272,7 +301,7 @@ export default function AdminUnitsPage() {
                                 >
                                     Cancelar
                                 </Button>
-                                <Button type="submit" isLoading={saving} className="px-8 shadow-blue-500/20">
+                                <Button type="submit" isLoading={saving} className="bg-blue-600 hover:bg-blue-700 text-white px-8 shadow-blue-500/20 font-bold">
                                     {isEditing ? 'Guardar Cambios' : 'Registrar Unidad'}
                                 </Button>
                             </div>
@@ -283,4 +312,3 @@ export default function AdminUnitsPage() {
         </div>
     );
 }
-

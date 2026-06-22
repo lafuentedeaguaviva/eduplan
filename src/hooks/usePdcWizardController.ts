@@ -20,6 +20,8 @@ export const PDC_TYPES = [
     { id: 4, name: 'Multigrado', icon: 'group_work', color: 'emerald-600', bgColor: 'bg-emerald-50', textColor: 'text-emerald-600', borderColor: 'border-emerald-100', shadowColor: 'shadow-emerald-500/10' },
 ];
 
+import { getMesInTrimester } from '@/lib/utils';
+
 export function usePdcWizardController() {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -45,7 +47,6 @@ export function usePdcWizardController() {
                 availableContents: [...state.availableContents],
                 weekDesignState: { ...state.weekDesignState },
                 weekPlanningIds: { ...state.weekPlanningIds },
-                finalProduct: state.finalProductState,
                 periodo_semanal: state.periodsPerWeek
             }
         }));
@@ -79,16 +80,21 @@ export function usePdcWizardController() {
     const isStep6Complete = state.scheduledMonthContentIds.length === 0 || 
                            state.scheduledMonthContentIds.every(id => isContentCovered(id));
     
-    const pendingContentsCount = state.scheduledMonthContentIds.filter(id => !isContentCovered(id)).length;
+    const pendingContentsCount = state.scheduledMonthContentIds.filter(id => {
+        const content = state.availableContents.find(c => String(c.id) === String(id));
+        return content?.padre_id === null && !isContentCovered(id);
+    }).length;
 
 
-    // Contenidos filtrados estrictamente para el Paso 6 (Diseño de Objetivos)
+    // Contenidos filtrados para el Paso 6 (Diseño de Objetivos).
+    // Solo muestra los contenidos asignados a semanas (semana_contenido) del mes del PDC.
+    // Si no hay contenidos programados para ese mes en el PAT, el array queda vacío y la UI muestra estado vacío.
     const filteredContentsForDesign = state.availableContents.filter(c => {
         const isScheduled = state.scheduledMonthContentIds.includes(String(c.id));
         if (isScheduled) return true;
-        // También mostrar los temas padres si tienen hijos programados para mantener la jerarquía
-        const hasScheduledChild = state.availableContents.some(child => 
-            String(child.padre_id) === String(c.id) && 
+        // También incluir los temas padres cuyos hijos están programados (para mantener jerarquía visual)
+        const hasScheduledChild = state.availableContents.some(child =>
+            String(child.padre_id) === String(c.id) &&
             state.scheduledMonthContentIds.includes(String(child.id))
         );
         return hasScheduledChild;
@@ -100,6 +106,7 @@ export function usePdcWizardController() {
         setMainAreaDetails: state.setMainAreaDetails,
         showSuccess,
         showError,
+        showConfirm,
         isStep6Complete,
         pendingContentsCount
     });
@@ -144,7 +151,8 @@ export function usePdcWizardController() {
         try {
             const gestion = new Date().getFullYear();
             const { data, success } = await PdcScheduleService.getGlobalSchedule(gestion, state.selectedTrimestre);
-            const filtered = (data || []).filter(w => w.mes === state.selectedMes);
+            const relativeMes = getMesInTrimester(state.selectedMes);
+            const filtered = (data || []).filter(w => w.mes === relativeMes);
 
             if (success && filtered.length > 0) {
                 state.setPdcWeeks(filtered.map((w: any) => ({
@@ -196,6 +204,7 @@ export function usePdcWizardController() {
     }, [state.mainAreaDetails]);
 
     useEffect(() => {
+        console.log(`[DEBUG_EFFECT] useEffect triggered. step: ${state.step}, selectedAreas: ${state.selectedAreas.length}, trimestre: ${state.selectedTrimestre}, mes: ${state.selectedMes}, currentPdcId: ${state.currentPdcId}`);
         if (state.step >= 4 && state.selectedAreas.length > 0 && state.selectedTrimestre && state.selectedMes) {
             const areaId = state.selectedAreas[state.currentAreaIndex];
             if (areaId) {
@@ -210,13 +219,23 @@ export function usePdcWizardController() {
                     state.setAvailableContents(cached.availableContents || []);
                     state.setWeekDesignState(cached.weekDesignState || {});
                     state.setWeekPlanningIds(cached.weekPlanningIds || {});
-                    state.setFinalProductState(cached.finalProduct || '');
                     state.setPeriodsPerWeek(cached.periodo_semanal || 0);
+                } else {
+                    // Resetear estados al cambiar a un área que no tiene caché todavía
+                    state.setLearningObjectives([]);
+                    state.setGeneratorMode('auto');
+                    state.setCurrentObjective({ verboIds: [], contentIds: [], complementId: null, complement: '', draft: '', isManual: false });
+                    state.setManualObjective({ quiero: '', paraQue: '', medire: '' });
+                    state.setWeekContentsMap({});
+                    state.setAvailableContents([]); // Limpiar mientras carga la nueva área
+                    state.setWeekDesignState({});
+                    state.setWeekPlanningIds({});
+                    state.setPeriodsPerWeek(0);
                 }
-                designLogic.loadStep3Data(areaId, state.selectedTrimestre, state.selectedMes);
+                designLogic.loadStep3Data(areaId, state.selectedTrimestre, state.selectedMes, state.currentPdcId || undefined);
             }
         }
-    }, [state.step, state.currentAreaIndex, state.selectedAreas, state.selectedTrimestre, state.selectedMes]);
+    }, [state.step, state.currentAreaIndex, state.selectedAreas, state.selectedTrimestre, state.selectedMes, state.currentPdcId]);
 
     useEffect(() => {
         if (!state.currentObjective.isManual) {
@@ -232,7 +251,8 @@ export function usePdcWizardController() {
             if (pdc) {
                 console.log('Auto-resuming PDC from URL:', pdcId);
                 hasResumed.current = true;
-                resumePdc(pdc);
+                const targetStep = searchParams.get('step');
+                resumePdc(pdc, targetStep ? parseInt(targetStep) : undefined);
             }
         }
     }, [searchParams, state.loading, state.recentPdcs]);
@@ -241,8 +261,18 @@ export function usePdcWizardController() {
 
     const toggleAreaSelection = (id: string) => {
         state.setSelectedAreas(prev => {
-            if (state.selectedType === 3) return prev.includes(id) ? [] : [id];
-            return prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id];
+            let next: string[];
+            if (state.selectedType === 3) {
+                next = prev.includes(id) ? [] : [id];
+            } else {
+                next = prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id];
+            }
+            // Ensure they are sorted in the same order as they appear in the main `areas` array
+            return next.sort((a, b) => {
+                const idxA = state.areas.findIndex(area => area.id === a);
+                const idxB = state.areas.findIndex(area => area.id === b);
+                return idxA - idxB;
+            });
         });
     };
 
@@ -275,7 +305,7 @@ export function usePdcWizardController() {
         }));
     };
 
-    const resumePdc = async (pdc: any) => {
+    const resumePdc = async (pdc: any, targetStep?: number) => {
         state.setSaving(true);
         try {
             state.setCurrentPdcId(pdc.id);
@@ -288,15 +318,22 @@ export function usePdcWizardController() {
             if (pdc.escritura_tipo_ia) state.setSelectedTone(pdc.escritura_tipo_ia);
             if (pdc.correccion_profundidad_ia) state.setCorrectionDepth(pdc.correccion_profundidad_ia);
             if (pdc.evaluacion_tipo_ia) state.setSelectedEvaluationType(pdc.evaluacion_tipo_ia);
+            if (pdc.producto_final) state.setFinalProductState(pdc.producto_final);
 
             if (pdc.areas_trabajo && pdc.areas_trabajo.length > 0) {
                 const areaIds = pdc.areas_trabajo.map((a: any) => a.id);
+                // Ensure they are sorted
+                areaIds.sort((a: string, b: string) => {
+                    const idxA = state.areas.findIndex(area => area.id === a);
+                    const idxB = state.areas.findIndex(area => area.id === b);
+                    return idxA - idxB;
+                });
                 state.setSelectedAreas(areaIds);
                 const details = await AreasService.getAreaById(areaIds[0]);
                 if (details.success && details.data) state.setMainAreaDetails(details.data);
-                await designLogic.loadStep3Data(areaIds[0], pdc.trimestre || 1, pdc.mes || 1);
+                await designLogic.loadStep3Data(areaIds[0], pdc.trimestre || 1, pdc.mes || 1, pdc.id);
             }
-            state.setStep(4);
+            state.setStep(targetStep || 4);
         } catch (error) {
             alert('No se pudo reanudar el PDC.');
         } finally {
@@ -311,6 +348,7 @@ export function usePdcWizardController() {
         }
         if (state.verbFilters.dominio && v.dominio !== state.verbFilters.dominio) return false;
         if (state.verbFilters.profundidad && v.nivel_profundidad !== state.verbFilters.profundidad) return false;
+        if (state.verbFilters.detalle_tipo && v.detalle_tipo !== state.verbFilters.detalle_tipo) return false;
         return true;
     }).sort((a, b) => a.verbo.localeCompare(b.verbo));
 
@@ -331,11 +369,41 @@ export function usePdcWizardController() {
         )
     ).sort() as string[];
 
+    const complementSubCategories = Array.from(
+        new Set(
+            state.catalogoComplementos
+                .filter((c: any) => !state.complementFilters.categoria || c.categoria === state.complementFilters.categoria)
+                .map((c: any) => c.subcategoria)
+                .filter(Boolean)
+        )
+    ).sort() as string[];
+
+    const allComplementLevels = Array.from(
+        new Set(
+            state.catalogoComplementos
+                .flatMap((c: any) => c.niveles_sugeridos || [])
+                .filter(Boolean)
+        )
+    ).sort() as string[];
+
     const filteredComplementos = state.catalogoComplementos.filter((c: any) => {
-        if (state.selectedCompCategory && c.categoria !== state.selectedCompCategory) return false;
+        // Búsqueda
         if (state.complementSearch && !c.complemento.toLowerCase().includes(state.complementSearch.toLowerCase())) return false;
+        
+        // Filtro de categoría vieja (mantenido por compatibilidad si es necesario)
+        if (state.selectedCompCategory && c.categoria !== state.selectedCompCategory) return false;
+
+        // Nuevos filtros
+        if (state.complementFilters.categoria && c.categoria !== state.complementFilters.categoria) return false;
+        if (state.complementFilters.subcategoria && c.subcategoria !== state.complementFilters.subcategoria) return false;
+        
+        if (state.complementFilters.niveles.length > 0) {
+            if (!c.niveles_sugeridos) return false;
+            if (!state.complementFilters.niveles.some((n: string) => c.niveles_sugeridos?.includes(n))) return false;
+        }
+
         return true;
-    });
+    }).sort((a, b) => a.complemento.localeCompare(b.complemento));
 
     // Log para depuración interna (visible en consola del navegador)
     if (state.step === 6) {
@@ -370,6 +438,8 @@ export function usePdcWizardController() {
         filteredAreas,
         sortedVerbos,
         complementCategories,
+        complementSubCategories,
+        allComplementLevels,
         filteredComplementos,
         filteredContentsForDesign,
         isStep6Complete,
@@ -381,6 +451,14 @@ export function usePdcWizardController() {
         addWeek,
         removeLastWeek,
         toggleNivelFilter,
+        toggleComplementNivelFilter: (nivel: string) => {
+            state.setComplementFilters((prev: any) => ({
+                ...prev,
+                niveles: prev.niveles.includes(nivel)
+                    ? prev.niveles.filter((n: string) => n !== nivel)
+                    : [...prev.niveles, nivel]
+            }));
+        },
         resumePdc,
         getStepName,
         getTotalSteps: () => 12,

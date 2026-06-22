@@ -4,13 +4,19 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
 /**
- * Unified Supabase Browser Client.
+ * Creates a unified Supabase Browser Client.
  * 
  * This client is SSR-compatible and uses cookies to persist the session.
- * By unifying the client here, we ensure that both Auth pages and 
- * Data services (Profile, Pdc, etc.) share the same authentication state.
+ * We use a factory function so `createBrowserClient` can handle internal
+ * memoization correctly, reducing orphaned locks in React Strict Mode.
  */
-export const supabase = createBrowserClient(
-    supabaseUrl,
-    supabaseAnonKey
-);
+export const createSupabaseBrowserClient = () => {
+    return createBrowserClient(
+        supabaseUrl,
+        supabaseAnonKey
+    );
+};
+
+// For backwards compatibility where a single export was used.
+// NOTE: Prefer using `createClient()` from `@/utils/supabase/client` in components.
+export const supabase = createSupabaseBrowserClient();

@@ -26,20 +26,69 @@ export function ScheduleConfigModal({ areaId, gestion, trimestre, globalSchedule
     const [endDate, setEndDate] = useState('');
     const [selectedWeeks, setSelectedWeeks] = useState<Set<string>>(new Set());
 
-    // Cargar globalSchedule si cambia el trimestre local
-    useEffect(() => {
-        const fetchGlobal = async () => {
-            if (localTrimestre === trimestre) {
-                setLocalGlobalSchedule(globalSchedule);
-            } else {
-                const res = await PdcService.getGlobalSchedule(gestion, localTrimestre);
-                if (res.success && res.data) setLocalGlobalSchedule(res.data);
-            }
-        };
-        fetchGlobal();
-    }, [localTrimestre, trimestre, globalSchedule, gestion]);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
+        const fetchSchedules = async () => {
+            setIsLoading(true);
+
+            // 1. Fetch Global Schedule for this trimester
+            let currentGlobal = globalSchedule;
+            if (localTrimestre !== trimestre) {
+                const resGlobal = await PdcService.getGlobalSchedule(gestion, localTrimestre);
+                if (resGlobal.success && resGlobal.data) {
+                    currentGlobal = resGlobal.data;
+                }
+            }
+            setLocalGlobalSchedule(currentGlobal);
+
+            // 2. Fetch Area Schedule for this trimester
+            const resArea = await PdcService.getAreaSchedule(areaId, gestion, localTrimestre);
+            const areaWeeks = resArea.success && resArea.data ? resArea.data : [];
+
+            if (areaWeeks.length > 0) {
+                // If the user has already configured this area, load it
+                setPreviewWeeks(areaWeeks);
+                setStartDate(areaWeeks[0].fecha_inicio_trimestre || currentGlobal[0]?.fecha_inicio_trimestre || '');
+                setEndDate(areaWeeks[0].fecha_fin_trimestre || currentGlobal[0]?.fecha_fin_trimestre || '');
+                setSelectedWeeks(new Set(areaWeeks.map(w => `${w.mes}-${w.semana}`)));
+            } else if (currentGlobal && currentGlobal.length > 0) {
+                // Otherwise fallback to global schedule
+                const initialWeeks = currentGlobal.map(w => ({
+                    area_trabajo_id: areaId,
+                    gestion,
+                    trimestre: localTrimestre,
+                    mes: w.mes,
+                    semana: w.semana,
+                    fecha_inicio_trimestre: w.fecha_inicio_trimestre,
+                    fecha_fin_trimestre: w.fecha_fin_trimestre
+                }));
+                setPreviewWeeks(initialWeeks);
+                setStartDate(currentGlobal[0].fecha_inicio_trimestre);
+                setEndDate(currentGlobal[0].fecha_fin_trimestre);
+                setSelectedWeeks(new Set(initialWeeks.map(w => `${w.mes}-${w.semana}`)));
+            } else {
+                setPreviewWeeks([]);
+                setStartDate('');
+                setEndDate('');
+                setSelectedWeeks(new Set());
+            }
+
+            setIsLoading(false);
+        };
+        fetchSchedules();
+    }, [localTrimestre, trimestre, globalSchedule, gestion, areaId]);
+
+    // Update dates in all weeks when trimester dates change
+    useEffect(() => {
+        setPreviewWeeks(prev => prev.map(w => ({
+            ...w,
+            fecha_inicio_trimestre: startDate,
+            fecha_fin_trimestre: endDate
+        })));
+    }, [startDate, endDate]);
+
+    const handleReset = () => {
         if (localGlobalSchedule && localGlobalSchedule.length > 0) {
             const initialWeeks = localGlobalSchedule.map(w => ({
                 area_trabajo_id: areaId,
@@ -53,37 +102,6 @@ export function ScheduleConfigModal({ areaId, gestion, trimestre, globalSchedule
             setPreviewWeeks(initialWeeks);
             setStartDate(localGlobalSchedule[0].fecha_inicio_trimestre);
             setEndDate(localGlobalSchedule[0].fecha_fin_trimestre);
-            setSelectedWeeks(new Set(initialWeeks.map(w => `${w.mes}-${w.semana}`)));
-        } else {
-            // Si no hay calendario global, inicializar vacío pero con estructura básica
-            setPreviewWeeks([]);
-            setSelectedWeeks(new Set());
-        }
-    }, [localGlobalSchedule, areaId, gestion, localTrimestre]);
-
-    // Update dates in all weeks when trimester dates change
-    useEffect(() => {
-        setPreviewWeeks(prev => prev.map(w => ({
-            ...w,
-            fecha_inicio_trimestre: startDate,
-            fecha_fin_trimestre: endDate
-        })));
-    }, [startDate, endDate]);
-
-    const handleReset = () => {
-        if (globalSchedule && globalSchedule.length > 0) {
-            const initialWeeks = globalSchedule.map(w => ({
-                area_trabajo_id: areaId,
-                gestion,
-                trimestre,
-                mes: w.mes,
-                semana: w.semana,
-                fecha_inicio_trimestre: w.fecha_inicio_trimestre,
-                fecha_fin_trimestre: w.fecha_fin_trimestre
-            }));
-            setPreviewWeeks(initialWeeks);
-            setStartDate(globalSchedule[0].fecha_inicio_trimestre);
-            setEndDate(globalSchedule[0].fecha_fin_trimestre);
             setSelectedWeeks(new Set(initialWeeks.map(w => `${w.mes}-${w.semana}`)));
         }
     };
@@ -148,7 +166,10 @@ export function ScheduleConfigModal({ areaId, gestion, trimestre, globalSchedule
             // 2. Create only selected weeks
             const weeksToCreate = previewWeeks.filter(w =>
                 selectedWeeks.has(`${w.mes}-${w.semana}`)
-            ) as PlanificacionSemanal[];
+            ).map(w => {
+                const { semana_contenido, ...cleanWeek } = w as any;
+                return cleanWeek as PlanificacionSemanal;
+            });
 
             if (weeksToCreate.length === 0) {
                 alert('Selecciona al menos una semana');

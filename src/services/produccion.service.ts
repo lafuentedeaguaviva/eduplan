@@ -1,15 +1,24 @@
 import { supabase } from '@/lib/supabase';
 import { ProduccionItem, ProduccionLibraryItem, ServiceResponse } from '@/types';
 
+let libraryCache: ProduccionLibraryItem[] | null = null;
+
 export const ProduccionService = {
     /**
      * Obtiene todos los ítems de la biblioteca de producción.
      */
     async getLibrary(): Promise<ServiceResponse<ProduccionLibraryItem[]>> {
+        if (libraryCache) {
+            return { data: libraryCache, error: null, success: true };
+        }
         const { data, error } = await supabase
             .from('biblioteca_produccion')
             .select('*')
             .order('nombre_produccion');
+
+        if (!error && data) {
+            libraryCache = data as ProduccionLibraryItem[];
+        }
 
         return { data: data as ProduccionLibraryItem[], error, success: !error };
     },

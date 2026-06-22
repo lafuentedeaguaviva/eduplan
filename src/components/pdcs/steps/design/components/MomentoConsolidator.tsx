@@ -117,7 +117,7 @@ export function MomentoConsolidator({ items, onReorder, onSave, activeWeek, isSa
                 
                 <Button 
                     onClick={() => onSave(localItems)} 
-                    disabled={isSaving || localItems.length === 0}
+                    disabled={isSaving}
                     className={`flex items-center gap-2 px-8 py-4 rounded-2xl font-black transition-all active:scale-95 shadow-xl text-xs uppercase tracking-widest ${
                         isConsolidated 
                         ? 'bg-white border border-emerald-200 text-emerald-600 hover:bg-emerald-50' 

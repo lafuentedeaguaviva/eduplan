@@ -11,7 +11,7 @@ import {
     AdaptacionEvaluacionLibraryItem, AdaptacionEvaluacionItem
 } from '@/types';
 
-export type EvaluacionTab = 'ser' | 'saber' | 'hacer' | 'adaptacion';
+export type EvaluacionTab = 'ser' | 'saber' | 'hacer' | 'adaptacion' | 'adaptacion_no_sig';
 
 export function useCriteriosEvaluacion() {
     const { 
@@ -40,6 +40,7 @@ export function useCriteriosEvaluacion() {
     const [savedSaber, setSavedSaber] = useState<SaberItem[]>([]);
     const [savedHacer, setSavedHacer] = useState<HacerItem[]>([]);
     const [savedAdaptacion, setSavedAdaptacion] = useState<AdaptacionEvaluacionItem[]>([]);
+    const [adaptacionNoSig, setAdaptacionNoSig] = useState<string>('');
 
     // ─── SELECTION STATE ───
     // Hierarchical filters for each tab
@@ -89,29 +90,43 @@ export function useCriteriosEvaluacion() {
     }, []);
 
     useEffect(() => {
-        if (!currentPdcId) {
-            setSavedSer([]);
-            setSavedSaber([]);
-            setSavedHacer([]);
-            setSavedAdaptacion([]);
-            return;
-        }
-        
         const loadSaved = async () => {
             if (!pdcAreaId) return;
-            const [ser, saber, hacer, adapt] = await Promise.all([
+            const [ser, saber, hacer, adapt, noSig] = await Promise.all([
                 EvaluacionService.getSerByPdcArea(pdcAreaId),
                 EvaluacionService.getSaberByPdcArea(pdcAreaId),
                 EvaluacionService.getHacerByPdcArea(pdcAreaId),
-                EvaluacionService.getAdaptacionByPdcArea(pdcAreaId)
+                EvaluacionService.getAdaptacionByPdcArea(pdcAreaId),
+                PdcService.getAdaptacionNoSig(pdcAreaId)
             ]);
             setSavedSer(ser.data || []);
             setSavedSaber(saber.data || []);
             setSavedHacer(hacer.data || []);
             setSavedAdaptacion(adapt.data || []);
+            setAdaptacionNoSig(noSig.data || '');
         };
         if (pdcAreaId) loadSaved();
     }, [pdcAreaId]);
+
+    // Snapshot synchronization effect
+    useEffect(() => {
+        if (!pdcAreaId || isSaving) return;
+        
+        const updateSnapshot = async () => {
+            const allCriterios = [...savedSer, ...savedSaber, ...savedHacer];
+            // Only update if we have data to avoid clearing on initial load
+            if (allCriterios.length === 0 && savedAdaptacion.length === 0) return;
+
+            await EvaluacionService.saveEvaluationSnapshot(pdcAreaId, {
+                criterios: allCriterios,
+                adaptaciones: savedAdaptacion
+            });
+        };
+        
+        // Debounce to avoid excessive writes
+        const timeout = setTimeout(updateSnapshot, 1000);
+        return () => clearTimeout(timeout);
+    }, [savedSer, savedSaber, savedHacer, savedAdaptacion, pdcAreaId]);
 
     // ─── FILTER LOGIC ───
 
@@ -459,6 +474,26 @@ export function useCriteriosEvaluacion() {
 
 
 
+    const handleSaveAdaptacionNoSig = async (directValue?: string) => {
+        if (!pdcAreaId) return;
+        setIsSaving(true);
+        try {
+            const val = typeof directValue === 'string' ? directValue : adaptacionNoSig;
+            const res = await PdcService.updateAdaptacionNoSig(pdcAreaId, val);
+            if (res.success) {
+                if (typeof directValue === 'string') {
+                    setAdaptacionNoSig(directValue);
+                }
+                showSuccess('Adaptación no significativa guardada correctamente.');
+            }
+            else showError('Error al guardar la adaptación.');
+        } catch (e) {
+            showError('Error inesperado al guardar.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     return {
         activeTab, setActiveTab,
         isSaving,
@@ -469,6 +504,7 @@ export function useCriteriosEvaluacion() {
 
         // Saved Lists
         savedSer, savedSaber, savedHacer, savedAdaptacion,
+        adaptacionNoSig, setAdaptacionNoSig,
 
         // Filters & Selectors
         filtersSer, setFiltersSer, availableCategoriesSer, filteredSubcategoriesSer, filteredNombresSer,
@@ -487,6 +523,7 @@ export function useCriteriosEvaluacion() {
         // Handlers
         handlePushToEditor,
         handleSaveSer, handleSaveSaber, handleSaveHacer, handleSaveAdaptacion,
-        handleDeleteSer, handleDeleteSaber, handleDeleteHacer, handleDeleteAdaptacion
+        handleDeleteSer, handleDeleteSaber, handleDeleteHacer, handleDeleteAdaptacion,
+        handleSaveAdaptacionNoSig
     };
 }

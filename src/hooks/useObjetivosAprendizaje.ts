@@ -22,6 +22,12 @@ export function useObjetivosAprendizaje() {
         complementCategories,
         selectedCompCategory,
         setSelectedCompCategory,
+        complementFilters,
+        setComplementFilters,
+        complementSubCategories,
+        allComplementLevels,
+        showCompFilters,
+        setShowCompFilters,
         filteredComplementos,
         hoveredComplement,
         setHoveredComplement,
@@ -36,6 +42,7 @@ export function useObjetivosAprendizaje() {
         isStep6Complete,
         pendingContentsCount,
         editingObjectiveIndex,
+        toggleComplementNivelFilter
     } = usePdcWizard();
 
     const handleToggleVerb = (vId: number) => {
@@ -106,6 +113,12 @@ export function useObjetivosAprendizaje() {
         complementCategories,
         selectedCompCategory,
         setSelectedCompCategory,
+        complementFilters,
+        setComplementFilters,
+        complementSubCategories,
+        allComplementLevels,
+        showCompFilters,
+        setShowCompFilters,
         filteredComplementos,
         hoveredComplement,
         setHoveredComplement,
@@ -122,6 +135,7 @@ export function useObjetivosAprendizaje() {
         loadObjectiveForEdit,
         isStep6Complete,
         pendingContentsCount,
-        editingObjectiveIndex
+        editingObjectiveIndex,
+        toggleComplementNivelFilter
     };
 }

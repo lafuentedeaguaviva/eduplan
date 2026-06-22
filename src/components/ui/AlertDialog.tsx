@@ -6,7 +6,7 @@ import { AlertTriangle, CheckCircle2, Info, XCircle } from 'lucide-react';
 interface AlertDialogProps {
     isOpen: boolean;
     onClose: () => void;
-    onConfirm: () => void;
+    onConfirm?: () => void;
     title: string;
     description: string;
     confirmText?: string;
@@ -22,11 +22,14 @@ export const AlertDialog: React.FC<AlertDialogProps> = ({
     title,
     description,
     confirmText = 'Confirmar',
-    cancelText = 'Cancelar',
+    cancelText,
     variant = 'danger',
     isLoading = false
 }) => {
     if (!isOpen) return null;
+
+    // Si no hay onConfirm, por defecto debe cerrar la ventana (comportamiento de alerta)
+    const handleConfirm = onConfirm || onClose;
 
     const getIcon = () => {
         switch(variant) {
@@ -69,19 +72,19 @@ export const AlertDialog: React.FC<AlertDialogProps> = ({
                 </div>
 
                 <div className="p-8 flex flex-col sm:flex-row gap-3">
-                    {cancelText !== 'hide' && (
+                    {cancelText && (
                         <Button
                             variant="ghost"
                             onClick={onClose}
                             disabled={isLoading}
                             className="flex-1 rounded-2xl font-bold text-xs uppercase tracking-widest text-slate-400 hover:text-slate-600 hover:bg-slate-50 border-none h-14"
                         >
-                            {cancelText || 'Cancelar'}
+                            {cancelText}
                         </Button>
                     )}
                     <Button
                         variant={variant === 'danger' ? 'danger' : variant === 'warning' ? 'warning' : 'accent'}
-                        onClick={onConfirm}
+                        onClick={handleConfirm}
                         isLoading={isLoading}
                         className={cn(
                             "flex-1 rounded-2xl shadow-xl h-14 text-sm font-bold",

@@ -11,6 +11,7 @@ export function useDirectorController() {
     const [analytics, setAnalytics] = useState<any>(null);
     const [staff, setStaff] = useState<any[]>([]);
     const [pdcs, setPdcs] = useState<any[]>([]);
+    const [inbox, setInbox] = useState<any[]>([]);
     const [revisionStats, setRevisionStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -26,27 +27,31 @@ export function useDirectorController() {
                 PdcService.getUEAnalytics(profile.id),
                 PdcService.getStaffPerformance(profile.id),
                 PdcService.getPDCsForDirector(profile.id),
-                PdcRevisionesService.getDirectorInbox()
+                PdcRevisionesService.getDirectorInbox(profile.id)
             ]);
 
             if (analyticsRes.success) setAnalytics(analyticsRes.data);
             if (staffRes.success) setStaff(staffRes.data ?? []);
             if (pdcsRes.success) setPdcs(pdcsRes.data ?? []);
+            
+            const safeRevisions = revisions || [];
+            setInbox(safeRevisions);
 
             // Calcular Estadísticas de Revisión
-            const total = revisions.length;
-            const aprobados = revisions.filter(r => r.estado === 'aprobado').length;
-            const cycleTimes = revisions
-                .filter(r => r.estado === 'aprobado')
-                .map(r => differenceInHours(new Date(r.updated_at), new Date(r.created_at)));
+            const total = safeRevisions.length;
+            const aprobados = safeRevisions.filter((r: any) => r.estado === 'aprobado').length;
+            const cycleTimes = safeRevisions
+                .filter((r: any) => r.estado === 'aprobado')
+                .map((r: any) => differenceInHours(new Date(r.updated_at), new Date(r.created_at)));
             
             setRevisionStats({
                 total,
                 aprobados,
-                enviados: revisions.filter(r => r.estado === 'enviado').length,
-                observados: revisions.filter(r => r.estado === 'observado').length,
+                enviados: safeRevisions.filter((r: any) => r.estado === 'enviado').length,
+                revisados: safeRevisions.filter((r: any) => ['revisado', 'observado'].includes(r.estado)).length,
+                observados: safeRevisions.filter((r: any) => r.estado === 'observado').length,
                 approvalRate: total > 0 ? Math.round((aprobados / total) * 100) : 0,
-                avgCycleTime: cycleTimes.length > 0 ? (cycleTimes.reduce((a, b) => a + b, 0) / cycleTimes.length).toFixed(1) : '—'
+                avgCycleTime: cycleTimes.length > 0 ? (cycleTimes.reduce((a: number, b: number) => a + b, 0) / cycleTimes.length).toFixed(1) : '—'
             });
 
         } catch (err) {
@@ -67,6 +72,7 @@ export function useDirectorController() {
         analytics,
         staff,
         pdcs,
+        inbox,
         revisionStats,
         loading,
         error,

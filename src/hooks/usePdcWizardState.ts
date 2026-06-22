@@ -14,7 +14,8 @@ import {
     LearningObjective, 
     WeekDesign, 
     PlanificacionSemanal,
-    AreaDesignState
+    AreaDesignState,
+    TonoRedaccion
 } from '@/types';
 
 export function usePdcWizardState() {
@@ -52,7 +53,6 @@ export function usePdcWizardState() {
     const [objetivoNivel, setObjetivoNivel] = useState('');
     const [weekDesignState, setWeekDesignState] = useState<Record<number, WeekDesign>>({});
     const [weekPlanningIds, setWeekPlanningIds] = useState<Record<number, string>>({});
-    const [finalProductState, setFinalProductState] = useState('');
     const [periodsPerWeek, setPeriodsPerWeek] = useState<number>(0);
     const [weeklyHours, setWeeklyHours] = useState<number>(0);
     const [scheduledMonthContentIds, setScheduledMonthContentIds] = useState<string[]>([]);
@@ -66,9 +66,10 @@ export function usePdcWizardState() {
         draft: '',
         isManual: false
     });
-    const [selectedTone, setSelectedTone] = useState<TonoRedaccion>('Técnico-pedagógico');
+    const [selectedTone, setSelectedTone] = useState<TonoRedaccion>('Academico');
     const [correctionDepth, setCorrectionDepth] = useState<string>('Sugerir moderadamente');
     const [selectedEvaluationType, setSelectedEvaluationType] = useState<string>('Evaluación Cualitativa-Cuantitativa');
+    const [finalProductState, setFinalProductState] = useState('');
     const [aiOptions, setAiOptions] = useState<{ id: number, title: string, description: string, style: string }[]>([]);
     const [manualObjective, setManualObjective] = useState({
         quiero: '',
@@ -79,9 +80,16 @@ export function usePdcWizardState() {
     const [verbFilters, setVerbFilters] = useState({
         niveles: [] as string[],
         dominio: '' as string,
-        profundidad: '' as string
+        profundidad: '' as string,
+        detalle_tipo: '' as string
+    });
+    const [complementFilters, setComplementFilters] = useState({
+        niveles: [] as string[],
+        categoria: '' as string,
+        subcategoria: '' as string
     });
     const [showFilters, setShowFilters] = useState(false);
+    const [showCompFilters, setShowCompFilters] = useState(false);
     const [hoveredVerb, setHoveredVerb] = useState<CatalogoVerbo | null>(null);
     const [expandedTitles, setExpandedTitles] = useState<number[]>([]);
     const [selectedCompCategory, setSelectedCompCategory] = useState<string>('');
@@ -123,7 +131,6 @@ export function usePdcWizardState() {
         objetivoNivel, setObjetivoNivel,
         weekDesignState, setWeekDesignState,
         weekPlanningIds, setWeekPlanningIds,
-        finalProductState, setFinalProductState,
         periodsPerWeek, setPeriodsPerWeek,
         weeklyHours, setWeeklyHours,
 
@@ -133,7 +140,9 @@ export function usePdcWizardState() {
         manualObjective, setManualObjective,
         generatorMode, setGeneratorMode,
         verbFilters, setVerbFilters,
+        complementFilters, setComplementFilters,
         showFilters, setShowFilters,
+        showCompFilters, setShowCompFilters,
         hoveredVerb, setHoveredVerb,
         expandedTitles, setExpandedTitles,
         selectedCompCategory, setSelectedCompCategory,
@@ -144,6 +153,7 @@ export function usePdcWizardState() {
         originalObjectiveText, setOriginalObjectiveText,
         selectedTone, setSelectedTone,
         correctionDepth, setCorrectionDepth,
-        selectedEvaluationType, setSelectedEvaluationType
+        selectedEvaluationType, setSelectedEvaluationType,
+        finalProductState, setFinalProductState
     };
 }

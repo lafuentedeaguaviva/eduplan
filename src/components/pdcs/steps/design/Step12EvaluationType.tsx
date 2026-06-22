@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { usePdcWizard } from '@/contexts/PdcWizardContext';
 import { PdcService } from '@/services/pdc.service';
-import PdcEditorClient from '@/app/dashboard/reporting/pdc/[id]/PdcEditorClient';
+import PdcEditorClient from '@/components/pdcs/viewer/PdcEditorClient';
 
 export function Step12FinalPreview() {
     const { currentPdcId } = usePdcWizard();
@@ -17,8 +17,8 @@ export function Step12FinalPreview() {
             try {
                 const { db } = await import('@/lib/database');
                 
-                // Fetch full report data
-                const fullData = await PdcService.getFullReportData(currentPdcId);
+                // Fetch full report data (Forcing live to get IA updates)
+                const fullData = await PdcService.getFullReportData(currentPdcId, 'original', true);
                 
                 // Fetch basic pdc data
                 const { data: pdc } = await db.from('pdcs').select('*').eq('id', currentPdcId).single();

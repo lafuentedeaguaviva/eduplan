@@ -653,7 +653,7 @@ CREATE TABLE IF NOT EXISTS public.objetivo_estrategico (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     pdc_area_trabajo_id UUID NOT NULL REFERENCES public.pdcs_area_trabajo(id) ON DELETE CASCADE,
     descripcion TEXT NOT NULL,
-    descripcion_ia TEXT DEFAULT '',
+
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

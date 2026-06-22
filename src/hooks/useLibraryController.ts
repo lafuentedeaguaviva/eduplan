@@ -68,17 +68,32 @@ export function useLibraryController() {
     const executeSearch = async (searchQuery: string = query, areaId: string | null = selectedAreaId) => {
         setIsSearching(true);
         try {
-            const res = await LibraryService.searchContents(
-                searchQuery,
-                areaId ? parseInt(areaId) : undefined
-            );
+            const activeRole = typeof window !== 'undefined' ? localStorage.getItem('eduplan_active_role') : null;
+            let res;
+
+            if (activeRole === 'Administrador' || activeRole === 'Director') {
+                res = await LibraryService.searchContents(
+                    searchQuery,
+                    areaId ? parseInt(areaId) : undefined
+                );
+            } else {
+                const { data: sessionData } = await AuthService.getSession();
+                if (!sessionData?.session?.user) throw new Error('No session');
+                
+                res = await LibraryService.searchUserContents(
+                    searchQuery,
+                    sessionData.session.user.id,
+                    areaId
+                );
+            }
+
             if (res.success && res.data) {
                 setResults(res.data);
             } else if (res.error) {
-                showError('Error al realizar la búsqueda de contenidos.', res.error);
+                showError('Error al realizar la búsqueda de contenidos.', typeof res.error === 'object' ? JSON.stringify(res.error) : res.error);
             }
         } catch (error) {
-            showError('Error al realizar la búsqueda de contenidos.', error);
+            showError('Error al realizar la búsqueda de contenidos.', typeof error === 'object' && error !== null ? JSON.stringify(error) : String(error));
         } finally {
             setIsSearching(false);
         }

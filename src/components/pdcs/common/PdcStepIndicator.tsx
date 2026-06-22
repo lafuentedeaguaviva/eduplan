@@ -1,7 +1,14 @@
 import React from 'react';
 import { Check } from 'lucide-react';
 
+interface PdcStepIndicatorProps {
+    currentStep: number;
+    totalSteps: number;
+    className?: string;
+}
+
 export function PdcStepIndicator({ currentStep, totalSteps, className = "" }: PdcStepIndicatorProps) {
+
     return (
         <div className={`flex items-center gap-1.5 p-1 bg-white/40 backdrop-blur-md rounded-2xl border border-slate-200/50 shadow-sm ${className}`}>
             {Array.from({ length: totalSteps }, (_, i) => i + 1).map((s) => {

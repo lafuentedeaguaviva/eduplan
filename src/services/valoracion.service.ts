@@ -1,15 +1,24 @@
 import { supabase } from '@/lib/supabase';
 import { ValoracionItem, ValoracionLibraryItem, ServiceResponse } from '@/types';
 
+let libraryCache: ValoracionLibraryItem[] | null = null;
+
 export const ValoracionService = {
     /**
      * Obtiene todos los ítems de la biblioteca de valoración.
      */
     async getLibrary(): Promise<ServiceResponse<ValoracionLibraryItem[]>> {
+        if (libraryCache) {
+            return { data: libraryCache, error: null, success: true };
+        }
         const { data, error } = await supabase
             .from('biblioteca_valoracion')
             .select('*')
             .order('categoria');
+
+        if (!error && data) {
+            libraryCache = data as ValoracionLibraryItem[];
+        }
 
         return { data: data as ValoracionLibraryItem[], error, success: !error };
     },

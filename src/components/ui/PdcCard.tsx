@@ -6,17 +6,20 @@ import { Card } from './Card';
 import { Badge } from './Badge';
 import { Button } from './Button';
 import { PdcService } from '@/services/pdc.service';
-import { ExportService } from '@/services/export.service';
+import { exportToWord, exportToPDF } from '@/lib/exportService';
 import PDFPreview from '../pdcs/PDFPreview';
 import { FullReportData } from '@/types';
+import { toast } from 'sonner';
 
 interface PdcCardProps {
     pdc: PDC;
+    revision?: any;
     onDelete: (id: string) => void;
-    onResume?: (id: string) => void;
+    onResume?: (id: string, step?: number) => void;
+    onSend?: () => void;
 }
 
-export function PdcCard({ pdc, onDelete, onResume }: PdcCardProps) {
+export function PdcCard({ pdc, revision, onDelete, onResume, onSend }: PdcCardProps) {
     const rawDate = pdc.updated_at || pdc.fecha_inicio || pdc.created_at || new Date().toISOString();
     const startDate = new Date(rawDate);
     const isValidDate = !isNaN(startDate.getTime());
@@ -77,7 +80,7 @@ export function PdcCard({ pdc, onDelete, onResume }: PdcCardProps) {
         try {
             const data = await fetchReportData();
             if (data) {
-                await ExportService.exportToWord(pdc, data);
+                await exportToWord(pdc, data);
             }
         } catch (e) {
             console.error('Error exporting Word:', e);
@@ -93,7 +96,15 @@ export function PdcCard({ pdc, onDelete, onResume }: PdcCardProps) {
             if (data) {
                 // Wait a bit for PDFPreview to be rendered with data if it was just fetched
                 await new Promise(resolve => setTimeout(resolve, 500));
-                await ExportService.exportToPDF(`pdc-preview-${pdc.id}`, `PDC_${pdc.nombre_pdc || 'Reporte'}`, 'l');
+                
+                await toast.promise(
+                    exportToPDF(`pdc-preview-${pdc.id}`, `PDC_${pdc.nombre_pdc || 'Reporte'}`, 'l'),
+                    {
+                        loading: 'Generando PDF... por favor espera',
+                        success: 'PDF generado correctamente',
+                        error: 'Error al generar el PDF'
+                    }
+                );
             }
         } catch (e) {
             console.error('Error exporting PDF:', e);
@@ -102,14 +113,36 @@ export function PdcCard({ pdc, onDelete, onResume }: PdcCardProps) {
         }
     };
 
+    const hasRevision = !!revision;
+    const pdcState = (revision?.pdc_estado || '').toLowerCase();
+    
+    const displayEstado = revision?.pdc_estado ? 
+        (pdcState === 'borrador' ? 'Borrador' :
+         pdcState === 'finalizado' ? 'Finalizado' : 
+         pdcState === 'enviado' ? 'Enviado' :
+         pdcState === 'observado' ? 'Observado' :
+         pdcState === 'revisado' ? 'Revisado' :
+         pdcState === 'aprobado' ? 'Aprobado' :
+         pdcState === 'verificado' ? 'Verificado' : revision.pdc_estado) 
+        : pdc.estado;
+
+    const isEnviado = pdcState === 'enviado';
+    const isAprobado = pdcState === 'aprobado' || pdcState === 'verificado' || pdcState === 'consolidado';
+    const isObservado = pdcState === 'observado';
+    const isFinalizado = pdcState === 'finalizado' || isEnviado || isAprobado || isObservado || displayEstado === 'Finalizado';
+    
+    // El maestro puede editar si no está finalizado A MENOS que esté observado (ahí puede corregirlo)
+    const canEdit = !isFinalizado || isObservado;
+    const canDelete = !isEnviado && !isAprobado && !isObservado;
+
     return (
         <Card className="flex flex-col md:flex-row gap-6 items-center hover:shadow-medium">
             {/* Date Badge */}
             <div className={`flex flex-col items-center justify-center w-20 h-20 rounded-xl shrink-0 ${isValidDate ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-400'}`}>
                 {isValidDate ? (
                     <>
-                        <span className="text-xs font-bold uppercase">{format(startDate, 'MMM', { locale: es })}</span>
-                        <span className="text-2xl font-bold">{format(startDate, 'dd', { locale: es })}</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest opacity-60">MES</span>
+                        <span className="text-2xl font-black">{pdc.mes || '---'}</span>
                     </>
                 ) : (
                     <span className="material-symbols-rounded text-2xl">event_busy</span>
@@ -119,6 +152,24 @@ export function PdcCard({ pdc, onDelete, onResume }: PdcCardProps) {
 
             {/* Info */}
             <div className="flex-1 w-full text-center md:text-left">
+                {isEnviado && (
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 mb-3 bg-sky-50 text-sky-600 text-[10px] font-black uppercase tracking-[0.2em] rounded-full border border-sky-100 shadow-sm animate-in fade-in zoom-in duration-500">
+                        <span className="material-symbols-rounded text-sm">send</span>
+                        Enviado al Director
+                    </div>
+                )}
+                {isObservado && (
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 mb-3 bg-amber-50 text-amber-600 text-[10px] font-black uppercase tracking-[0.2em] rounded-full border border-amber-100 shadow-sm animate-in fade-in zoom-in duration-500">
+                        <span className="material-symbols-rounded text-sm">warning</span>
+                        Observado - Requiere Corrección
+                    </div>
+                )}
+                {isAprobado && (
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 mb-3 bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-[0.2em] rounded-full border border-emerald-100 shadow-sm animate-in fade-in zoom-in duration-500">
+                        <span className="material-symbols-rounded text-sm">check_circle</span>
+                        Consolidado / Aprobado
+                    </div>
+                )}
                 <div className="flex flex-wrap gap-2 mb-2 justify-center md:justify-start">
                     <Badge variant="default">
                         {firstArea?.unidad_educativa?.nombre || 'Verificando...'}
@@ -128,14 +179,14 @@ export function PdcCard({ pdc, onDelete, onResume }: PdcCardProps) {
                     </Badge>
                     <Badge
                         variant={
-                            pdc.estado === 'Verificado'
+                            displayEstado === 'Verificado' || displayEstado === 'Finalizado'
                                 ? 'success'
-                                : pdc.estado === 'Pendiente'
+                                : displayEstado === 'Pendiente'
                                     ? 'warning'
                                     : 'error'
                         }
                     >
-                        {pdc.estado}
+                        {displayEstado}
                     </Badge>
                 </div>
 
@@ -167,17 +218,19 @@ export function PdcCard({ pdc, onDelete, onResume }: PdcCardProps) {
                         </button>
                     </div>
                 ) : (
-                    <div className="flex items-center gap-2 group/title">
+                    <div className="flex items-center gap-2 group/title mt-1">
                         <h3 className="text-lg font-bold text-slate-900 mb-1">
                             {displayName}
                         </h3>
-                        <button
-                            onClick={() => setIsEditing(true)}
-                            className="opacity-0 group-hover/title:opacity-100 text-slate-300 hover:text-blue-500 transition-opacity"
-                            title="Editar nombre del PDC"
-                        >
-                            <span className="material-symbols-rounded text-base">edit</span>
-                        </button>
+                        {canEdit && (
+                            <button
+                                onClick={() => setIsEditing(true)}
+                                className="opacity-0 group-hover/title:opacity-100 text-slate-300 hover:text-blue-500 transition-opacity"
+                                title="Editar nombre del PDC"
+                            >
+                                <span className="material-symbols-rounded text-base">edit</span>
+                            </button>
+                        )}
                     </div>
                 )}
 
@@ -193,9 +246,15 @@ export function PdcCard({ pdc, onDelete, onResume }: PdcCardProps) {
                 <Button 
                     variant="ghost" 
                     size="sm" 
-                    className={`size-9 p-0 ${exportingPdf ? 'animate-pulse text-blue-600' : 'text-slate-400 hover:text-blue-600'}`} 
-                    title="Exportar PDF"
-                    onClick={handleExportPdf}
+                    className={`size-9 p-0 ${exportingPdf ? 'animate-pulse text-blue-600' : isFinalizado ? 'text-slate-400 hover:text-blue-600' : 'text-slate-300 opacity-50'}`} 
+                    title={isFinalizado ? "Exportar PDF" : "Debes finalizar el PDC para exportar"}
+                    onClick={() => {
+                        if (isFinalizado) {
+                            handleExportPdf();
+                        } else {
+                            toast.warning('Aún no disponible', { description: 'Debes finalizar el PDC (Paso 12) para poder exportarlo a PDF.' });
+                        }
+                    }}
                     disabled={exportingPdf}
                 >
                     <span className="material-symbols-rounded">{exportingPdf ? 'hourglass_top' : 'picture_as_pdf'}</span>
@@ -203,34 +262,90 @@ export function PdcCard({ pdc, onDelete, onResume }: PdcCardProps) {
                 <Button 
                     variant="ghost" 
                     size="sm" 
-                    className={`size-9 p-0 ${exportingWord ? 'animate-pulse text-indigo-600' : 'text-slate-400 hover:text-indigo-600'}`} 
-                    title="Exportar Word"
-                    onClick={handleExportWord}
+                    className={`size-9 p-0 ${exportingWord ? 'animate-pulse text-indigo-600' : isFinalizado ? 'text-slate-400 hover:text-indigo-600' : 'text-slate-300 opacity-50'}`} 
+                    title={isFinalizado ? "Exportar Word" : "Debes finalizar el PDC para exportar"}
+                    onClick={() => {
+                        if (isFinalizado) {
+                            handleExportWord();
+                        } else {
+                            toast.warning('Aún no disponible', { description: 'Debes finalizar el PDC (Paso 12) para poder exportarlo a Word.' });
+                        }
+                    }}
                     disabled={exportingWord}
                 >
                     <span className="material-symbols-rounded">{exportingWord ? 'hourglass_top' : 'description'}</span>
                 </Button>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    className="size-9 p-0 text-slate-400 hover:text-indigo-600"
-                    title="Editar / Continuar"
-                    onClick={() => onResume?.(pdc.id)}
-                >
-                    <span className="material-symbols-rounded">edit_square</span>
-                </Button>
-                <Button variant="ghost" size="sm" className="size-9 p-0 text-slate-400 hover:text-indigo-600" title="Duplicar">
-                    <span className="material-symbols-rounded">content_copy</span>
-                </Button>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    className="size-9 p-0 text-slate-400 hover:text-danger"
-                    onClick={() => onDelete(pdc.id)}
-                    title="Eliminar"
-                >
-                    <span className="material-symbols-rounded">delete</span>
-                </Button>
+
+                {revision?.pdc_estado === 'Finalizado' && !isEnviado && !isObservado && !isAprobado && (
+                    <Button 
+                        variant="primary" 
+                        size="sm" 
+                        className="h-9 px-4 ml-2 gap-2 shadow-glow-blue"
+                        onClick={() => onSend?.()}
+                        title="Enviar PDC a revisión del Director"
+                    >
+                        <span className="material-symbols-rounded text-[18px]">send</span>
+                        Enviar
+                    </Button>
+                )}
+
+                {canEdit && (
+                    <>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="size-9 p-0 text-slate-400 hover:text-indigo-600"
+                            title="Editar / Continuar"
+                            onClick={() => onResume?.(pdc.id)}
+                        >
+                            <span className="material-symbols-rounded">edit_square</span>
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="size-9 p-0 text-slate-400 hover:text-amber-500"
+                            title="Ir a Optimización IA (Paso 11)"
+                            onClick={() => {
+                                if (pdc.ia_habilitado === 1 || pdc.escritura_tipo_ia || pdc.evaluacion_tipo_ia || pdc.producto_final) {
+                                    onResume?.(pdc.id, 11);
+                                } else {
+                                    toast.warning('Aún no disponible', { description: 'Debes completar el diseño del PDC (Paso 10) antes de usar la Optimización IA.' });
+                                }
+                            }}
+                        >
+                            <span className="material-symbols-rounded">auto_awesome</span>
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="size-9 p-0 text-slate-400 hover:text-emerald-600"
+                            title="Ir a Configuración Evaluación IA (Paso 12)"
+                            onClick={() => {
+                                if (pdc.ia_habilitado === 1 || pdc.escritura_tipo_ia || pdc.evaluacion_tipo_ia || pdc.producto_final) {
+                                    onResume?.(pdc.id, 12);
+                                } else {
+                                    toast.warning('Aún no disponible', { description: 'Debes completar el diseño del PDC (Paso 10) antes de configurar la Evaluación IA.' });
+                                }
+                            }}
+                        >
+                            <span className="material-symbols-rounded">fact_check</span>
+                        </Button>
+                        <Button variant="ghost" size="sm" className="size-9 p-0 text-slate-400 hover:text-indigo-600" title="Duplicar">
+                            <span className="material-symbols-rounded">content_copy</span>
+                        </Button>
+                        {canDelete && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="size-9 p-0 text-slate-400 hover:text-danger"
+                                onClick={() => onDelete(pdc.id)}
+                                title="Eliminar"
+                            >
+                                <span className="material-symbols-rounded">delete</span>
+                            </Button>
+                        )}
+                    </>
+                )}
             </div>
 
             {/* Hidden Preview for PDF Export */}

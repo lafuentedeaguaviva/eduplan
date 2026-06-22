@@ -34,8 +34,8 @@ export function ContentSelector(props: ContentSelectorProps) {
                         .map((parent, pIdx) => {
                         const children = availableContents.filter(c => String(c.padre_id) === String(parent.id));
                         const isExpanded = expandedTitles.includes(Number(parent.id));
-                        const isParentSelected = currentObjective.contentIds.includes(Number(parent.id));
-                        const isParentCovered = learningObjectives.some(obj => obj.contentIds.includes(Number(parent.id)));
+                        const isParentSelected = currentObjective.contentIds.map(Number).includes(Number(parent.id));
+                        const isParentCovered = learningObjectives.some(obj => obj.contentIds.map(Number).includes(Number(parent.id)));
 
                         const parentNumber = pIdx + 1;
 
@@ -88,8 +88,8 @@ export function ContentSelector(props: ContentSelectorProps) {
                                 {isExpanded && children.length > 0 && (
                                     <div className="pl-8 space-y-2 animate-in slide-in-from-top-4 duration-300 py-1 border-l-2 border-slate-50 ml-4">
                                         {children.map((child, cIdx) => {
-                                            const isChildSelected = currentObjective.contentIds.includes(Number(child.id));
-                                            const isChildCovered = learningObjectives.some(obj => obj.contentIds.includes(Number(child.id)));
+                                            const isChildSelected = currentObjective.contentIds.map(Number).includes(Number(child.id));
+                                            const isChildCovered = learningObjectives.some(obj => obj.contentIds.map(Number).includes(Number(child.id)));
                                             const childNumber = `${parentNumber}.${cIdx + 1}`;
 
                                             return (

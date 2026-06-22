@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { usePdcRefinement } from '@/hooks/usePdcRefinement';
+import { AlertDialog } from '@/components/ui/AlertDialog';
 import { TONOS_LABEL, TonoRedaccion } from '@/lib/ai/promptTemplates';
 import { usePdcWizard } from '@/contexts/PdcWizardContext';
 import { PDC_TYPES } from '@/hooks/usePdcWizardController';
@@ -9,13 +10,16 @@ import { PDC_TYPES } from '@/hooks/usePdcWizardController';
 export function Step10AIFinalization() {
     const { 
         isRefining, 
-        progress, 
+        progress,
+        progressValue,
         selectedTone, 
         setSelectedTone, 
         correctionDepth,
         setCorrectionDepth,
         startRefinement 
     } = usePdcRefinement();
+    
+    const [isWarningOpen, setIsWarningOpen] = useState(false);
     
     const { selectedType, pdcName } = usePdcWizard();
     
@@ -82,10 +86,9 @@ export function Step10AIFinalization() {
                                         <span className={`material-symbols-rounded text-xl font-bold ${
                                             selectedTone === tone ? typeConfig.textColor : 'text-slate-400 group-hover:text-slate-600'
                                         }`}>
-                                            {tone === 'Motivacional-afectivo' ? 'favorite' :
-                                             tone === 'Instructivo-operativo' ? 'assignment' :
-                                             tone === 'Técnico-pedagógico' ? 'verified' :
-                                             tone === 'Reflexivo-metacognitivo' ? 'psychology' : 'auto_awesome'}
+                                            {tone === 'Dinamico' ? 'favorite' :
+                                             tone === 'Academico' ? 'assignment' :
+                                             tone === 'Reflexivo' ? 'psychology' : 'auto_awesome'}
                                         </span>
                                     </div>
                                     <div className="space-y-1 pr-4">
@@ -93,11 +96,9 @@ export function Step10AIFinalization() {
                                             {TONOS_LABEL[tone]}
                                         </h4>
                                         <p className="text-[12px] text-slate-500 font-medium leading-snug">
-                                            {tone === 'Motivacional-afectivo' && 'Lenguaje cálido e inspirador.'}
-                                            {tone === 'Instructivo-operativo' && 'Claro, directo y ejecutivo.'}
-                                            {tone === 'Técnico-pedagógico' && 'Rigor académico y docente.'}
-                                            {tone === 'Reflexivo-metacognitivo' && 'Fomenta el pensamiento crítico.'}
-                                            {tone === 'Lúdico-narrativo' && 'Dinámico, creativo y gamificado.'}
+                                            {tone === 'Dinamico' && 'Empático, práctico e interactivo.'}
+                                            {tone === 'Academico' && 'Formal, procedimental y riguroso.'}
+                                            {tone === 'Reflexivo' && 'Fomenta el análisis profundo.'}
                                         </p>
                                     </div>
                                     {selectedTone === tone && (
@@ -196,9 +197,27 @@ export function Step10AIFinalization() {
                             )}
                         </div>
 
-                        {/* Master Button */}
+                        {/* Progress Bar */}
+                        {isRefining && (
+                            <div className="space-y-2 animate-in fade-in duration-500">
+                                <div className="flex justify-between text-xs font-bold text-slate-300 px-1">
+                                    <span>Optimizando con IA...</span>
+                                    <span>{Math.round(progressValue)}%</span>
+                                </div>
+                                <div className="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
+                                    <div 
+                                        className={`h-full bg-gradient-to-r ${typeConfig.color === 'rose' ? 'from-rose-500 to-pink-500' : 
+                                            typeConfig.color === 'amber' ? 'from-amber-500 to-orange-500' :
+                                            typeConfig.color === 'indigo' ? 'from-indigo-500 to-violet-500' :
+                                            'from-emerald-500 to-teal-500'} transition-all duration-500 ease-out`}
+                                        style={{ width: `${progressValue}%` }}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
                         <button
-                            onClick={startRefinement}
+                            onClick={() => setIsWarningOpen(true)}
                             disabled={isRefining}
                             className={`w-full group relative overflow-hidden flex items-center justify-center gap-4 py-6 rounded-[2rem] text-white font-black uppercase tracking-widest transition-all duration-700 shadow-2xl ${
                                 isRefining 
@@ -227,6 +246,21 @@ export function Step10AIFinalization() {
                     </div>
                 </div>
             </div>
+            
+            {/* Modal de Advertencia */}
+            <AlertDialog
+                isOpen={isWarningOpen}
+                onClose={() => setIsWarningOpen(false)}
+                onConfirm={() => {
+                    setIsWarningOpen(false);
+                    startRefinement();
+                }}
+                title="¿Iniciar Optimización?"
+                description="Si ya realizaste la optimización IA anteriormente en este PDC, continuar reemplazará de forma permanente los textos generados previamente."
+                confirmText="Sí, continuar"
+                cancelText="Cancelar"
+                variant="warning"
+            />
         </div>
     );
 }

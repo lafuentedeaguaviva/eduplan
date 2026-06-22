@@ -41,6 +41,8 @@ export default function WorkAreasPage() {
     const [areasConocimiento, setAreasConocimiento] = useState<{ id: number; nombre: string; }[]>([]);
     const [turnos, setTurnos] = useState<{ id: string; nombre: string; }[]>([]);
     const [paralelos, setParalelos] = useState<{ id: string; nombre: string; }[]>([]);
+    const [directores, setDirectores] = useState<any[]>([]);
+    const [isLoadingDirectors, setIsLoadingDirectors] = useState(false);
 
     // Form State
     const [selectedNivel, setSelectedNivel] = useState<number | ''>('');
@@ -56,7 +58,8 @@ export default function WorkAreasPage() {
         unidad_educativa_id: '' as number | '',
         area_conocimiento_id: '' as number | '',
         turno_id: '',
-        paralelos_ids: [] as string[]
+        paralelos_ids: [] as string[],
+        director_id: ''
     });
 
     // Initial Load
@@ -105,6 +108,25 @@ export default function WorkAreasPage() {
             setFormData(prev => ({ ...prev, unidad_educativa_id: '' }));
         }
     }, [selectedDistrito]);
+
+    // Load Directors when Unit changes
+    useEffect(() => {
+        if (formData.unidad_educativa_id) {
+            setIsLoadingDirectors(true);
+            AreasService.getDirectorsByUnit(formData.unidad_educativa_id as number)
+                .then(res => {
+                    setDirectores(res.data || []);
+                    // Si solo hay uno, seleccionarlo automáticamente si no estamos editando o si el valor está vacío
+                    if (res.data && res.data.length === 1 && !formData.director_id) {
+                        setFormData(prev => ({ ...prev, director_id: res.data![0].id }));
+                    }
+                })
+                .finally(() => setIsLoadingDirectors(false));
+        } else {
+            setDirectores([]);
+            setFormData(prev => ({ ...prev, director_id: '' }));
+        }
+    }, [formData.unidad_educativa_id]);
 
     const loadInitialData = async () => {
         try {
@@ -162,7 +184,8 @@ export default function WorkAreasPage() {
                     unidad_educativa_id: formData.unidad_educativa_id as number,
                     area_conocimiento_id: formData.area_conocimiento_id as number,
                     turno_id: formData.turno_id,
-                    paralelos_ids: formData.paralelos_ids
+                    paralelos_ids: formData.paralelos_ids,
+                    director_id: formData.director_id
                 });
             } else {
                 result = await AreasService.createArea({
@@ -170,7 +193,8 @@ export default function WorkAreasPage() {
                     unidad_educativa_id: formData.unidad_educativa_id as number,
                     area_conocimiento_id: formData.area_conocimiento_id as number,
                     turno_id: formData.turno_id,
-                    paralelos_ids: formData.paralelos_ids
+                    paralelos_ids: formData.paralelos_ids,
+                    director_id: formData.director_id
                 });
             }
 
@@ -205,7 +229,8 @@ export default function WorkAreasPage() {
             unidad_educativa_id: '',
             area_conocimiento_id: '',
             turno_id: '',
-            paralelos_ids: []
+            paralelos_ids: [],
+            director_id: ''
         });
         setSelectedNivel('');
         setSelectedGrado('');
@@ -254,7 +279,8 @@ export default function WorkAreasPage() {
                 unidad_educativa_id: fullArea.unidad_educativa.id,
                 area_conocimiento_id: fullArea.area_conocimiento.id,
                 turno_id: fullArea.turno.id,
-                paralelos_ids: fullArea.paralelos.map(p => p.id)
+                paralelos_ids: fullArea.paralelos.map(p => p.id),
+                director_id: fullArea.director_id || ''
             });
 
             setShowModal(true);
@@ -433,6 +459,34 @@ export default function WorkAreasPage() {
                                     />
                                 </div>
 
+                                {/* Selección de Director */}
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Director/a de Referencia</label>
+                                    <select
+                                        className="w-full p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-sm focus:ring-2 focus:ring-blue-500 outline-none disabled:opacity-50"
+                                        value={formData.director_id}
+                                        onChange={e => setFormData({ ...formData, director_id: e.target.value })}
+                                        disabled={!formData.unidad_educativa_id || isLoadingDirectors}
+                                    >
+                                        <option value="">
+                                            {isLoadingDirectors ? 'Cargando directores...' : 
+                                             !formData.unidad_educativa_id ? 'Elige una Unidad primero' : 
+                                             directores.length === 0 ? 'No hay directores registrados' : 'Seleccionar director...'}
+                                        </option>
+                                        {directores.map((d, index) => (
+                                            <option key={`${d.id || 'dir'}-${index}`} value={d.id || ''}>
+                                                {d.nombres} {d.apellidos} ({d.nivel})
+                                            </option>
+                                        ))}
+                                    </select>
+                                    {directores.length === 0 && formData.unidad_educativa_id && !isLoadingDirectors && (
+                                        <p className="mt-1 text-xs text-amber-600 font-medium flex items-center gap-1">
+                                            <span className="material-symbols-rounded text-sm">warning</span>
+                                            Esta unidad no tiene directores vinculados en Gestión de Directores.
+                                        </p>
+                                    )}
+                                </div>
+
                                 {/* Nivel y Grado */}
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
@@ -546,6 +600,7 @@ export default function WorkAreasPage() {
                 title="¿Eliminar área de trabajo?"
                 description="¡Atención! Esta acción es irreversible. Al borrar esta área se eliminarán PERMANENTEMENTE todos los contenidos personalizados, planificaciones semanales, diseños curriculares y registros de IA asociados. ¿Deseas continuar?"
                 confirmText="Sí, eliminar todo en cascada"
+                cancelText="Cancelar"
             />
         </div>
     );

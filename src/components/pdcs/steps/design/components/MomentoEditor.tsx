@@ -11,31 +11,31 @@ interface MomentoEditorProps {
     // Práctica
     editingItem: any;
     setEditingItem: (val: any) => void;
-    handleSavePractica: () => void;
+    handleSavePractica: (draft?: any) => void;
     // Teoría
     editingTheoryItem: any;
     setEditingTheoryItem: (val: any) => void;
-    handleSaveTheory: () => void;
+    handleSaveTheory: (draft?: any) => void;
     // Producción
     editingProduccionItem: any;
     setEditingProduccionItem: (val: any) => void;
-    handleSaveProduccion: () => void;
+    handleSaveProduccion: (draft?: any) => void;
     // Valoración
     editingValoracionItem: any;
     setEditingValoracionItem: (val: any) => void;
-    handleSaveValoracion: () => void;
+    handleSaveValoracion: (draft?: any) => void;
     // Adaptaciones
     editingAdaptacionItem: any;
     setEditingAdaptacionItem: (val: any) => void;
-    handleSaveAdaptacion: () => void;
+    handleSaveAdaptacion: (draft?: any) => void;
     // Recursos
     editingRecursoItem: any;
     setEditingRecursoItem: (val: any) => void;
-    handleSaveRecurso: () => void;
+    handleSaveRecurso: (draft?: any) => void;
     // Fuentes
     editingFuenteItem: any;
     setEditingFuenteItem: (val: any) => void;
-    handleSaveMiFuente: () => void;
+    handleSaveMiFuente: (draft?: any) => void;
     isEditingExistingFuente: boolean;
     /** Catálogo de tipos de fuente cargado desde tipo_fuente */
     tiposFuenteCatalogo: TipoFuente[];
@@ -94,6 +94,42 @@ export function MomentoEditor(props: MomentoEditorProps) {
     const accentKey = activeMomentoConfig.accent || 'blue-600';
     const accentCfg = ACCENT_MAP[accentKey] || ACCENT_MAP['blue-600'];
 
+    // Local draft states to prevent typing re-render lag
+    const [draftPractica, setDraftPractica] = React.useState(editingItem);
+    const [draftTeoria, setDraftTeoria] = React.useState(editingTheoryItem);
+    const [draftProduccion, setDraftProduccion] = React.useState(editingProduccionItem);
+    const [draftValoracion, setDraftValoracion] = React.useState(editingValoracionItem);
+    const [draftAdaptacion, setDraftAdaptacion] = React.useState(editingAdaptacionItem);
+    const [draftRecurso, setDraftRecurso] = React.useState(editingRecursoItem);
+    const [draftFuente, setDraftFuente] = React.useState(editingFuenteItem);
+
+    React.useEffect(() => {
+        setDraftPractica(editingItem);
+    }, [editingItem]);
+
+    React.useEffect(() => {
+        setDraftTeoria(editingTheoryItem);
+    }, [editingTheoryItem]);
+
+    React.useEffect(() => {
+        setDraftProduccion(editingProduccionItem);
+    }, [editingProduccionItem]);
+
+    React.useEffect(() => {
+        setDraftValoracion(editingValoracionItem);
+    }, [editingValoracionItem]);
+
+    React.useEffect(() => {
+        setDraftAdaptacion(editingAdaptacionItem);
+    }, [editingAdaptacionItem]);
+
+    React.useEffect(() => {
+        setDraftRecurso(editingRecursoItem);
+    }, [editingRecursoItem]);
+
+    React.useEffect(() => {
+        setDraftFuente(editingFuenteItem);
+    }, [editingFuenteItem]);
 
     return (
         <div className="lg:col-span-5 flex flex-col min-h-0">
@@ -108,8 +144,8 @@ export function MomentoEditor(props: MomentoEditorProps) {
                 <div>
                     <h2 className="text-sm font-black text-white uppercase tracking-wider">
                         {activeTab === 'fuentes'
-                            ? (isEditingExistingFuente ? 'Editando Fuente' : 'Nueva Fuente')
-                            : `Editor de ${activeMomentoConfig.label}`}
+                             ? (isEditingExistingFuente ? 'Editando Fuente' : 'Nueva Fuente')
+                             : `Editor de ${activeMomentoConfig.label}`}
                     </h2>
                     <div className="flex items-center gap-1.5 mt-0.5">
                         <div className="size-1.5 rounded-full bg-white/60 animate-pulse" />
@@ -121,29 +157,28 @@ export function MomentoEditor(props: MomentoEditorProps) {
             {/* Form Body */}
             <div className="flex-1 overflow-y-auto bg-white border border-t-0 border-slate-100 rounded-b-2xl p-6 space-y-5 custom-scrollbar">
 
-
                 {/* ── PRÁCTICA ── */}
                 {activeTab === 'practica' && (
                     <div className="space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-400">
                         <FieldGroup label="Título de la Actividad">
                             <input className={inputCls} type="text"
                                 placeholder="Nombre de la práctica..."
-                                value={editingItem.nombre_practica}
-                                onChange={(e) => setEditingItem({ ...editingItem, nombre_practica: e.target.value })} />
+                                value={draftPractica?.nombre_practica || ''}
+                                onChange={(e) => setDraftPractica({ ...draftPractica, nombre_practica: e.target.value })} />
                         </FieldGroup>
                         <FieldGroup label="Preguntas Activadoras">
                             <textarea className={`${textareaCls} min-h-[100px]`}
                                     placeholder="¿Qué preguntas iniciarán el diálogo con los estudiantes?"
-                                    value={editingItem.preguntas}
-                                    onChange={(e) => setEditingItem({ ...editingItem, preguntas: e.target.value })} />
+                                    value={draftPractica?.preguntas || ''}
+                                    onChange={(e) => setDraftPractica({ ...draftPractica, preguntas: e.target.value })} />
                         </FieldGroup>
                         <FieldGroup label="Descripción / Redacción">
                             <textarea className={`${textareaCls} min-h-[350px]`}
                                     placeholder="Describe paso a paso cómo se llevará a cabo..."
-                                    value={editingItem.descripcion || editingItem.redactado || ''}
-                                    onChange={(e) => setEditingItem({ ...editingItem, descripcion: e.target.value, redactado: e.target.value })} />
+                                    value={draftPractica?.descripcion || draftPractica?.redactado || ''}
+                                    onChange={(e) => setDraftPractica({ ...draftPractica, descripcion: e.target.value, redactado: e.target.value })} />
                         </FieldGroup>
-                        <SaveButton gradientStyle={accentCfg.gradientStyle} label={accentCfg.saveLabel} onClick={handleSavePractica} isSaving={isSaving} />
+                        <SaveButton gradientStyle={accentCfg.gradientStyle} label={accentCfg.saveLabel} onClick={() => handleSavePractica(draftPractica)} isSaving={isSaving} />
                     </div>
                 )}
 
@@ -153,16 +188,16 @@ export function MomentoEditor(props: MomentoEditorProps) {
                         <FieldGroup label="Nombre de la Estrategia">
                             <input className={inputCls} type="text"
                                 placeholder="Nombre de la estrategia teórica..."
-                                value={editingTheoryItem.nombre_estrategia_teorica}
-                                onChange={(e) => setEditingTheoryItem({ ...editingTheoryItem, nombre_estrategia_teorica: e.target.value })} />
+                                value={draftTeoria?.nombre_estrategia_teorica || ''}
+                                onChange={(e) => setDraftTeoria({ ...draftTeoria, nombre_estrategia_teorica: e.target.value })} />
                         </FieldGroup>
                         <FieldGroup label="Redacción de la Estrategia">
                             <textarea className={`${textareaCls} min-h-[450px]`}
                                     placeholder="Desarrolla la estrategia teórica en detalle..."
-                                    value={editingTheoryItem.redactado}
-                                    onChange={(e) => setEditingTheoryItem({ ...editingTheoryItem, redactado: e.target.value })} />
+                                    value={draftTeoria?.redactado || ''}
+                                    onChange={(e) => setDraftTeoria({ ...draftTeoria, redactado: e.target.value })} />
                         </FieldGroup>
-                        <SaveButton gradientStyle={accentCfg.gradientStyle} label={accentCfg.saveLabel} onClick={handleSaveTheory} isSaving={isSaving} />
+                        <SaveButton gradientStyle={accentCfg.gradientStyle} label={accentCfg.saveLabel} onClick={() => handleSaveTheory(draftTeoria)} isSaving={isSaving} />
                     </div>
                 )}
 
@@ -172,24 +207,24 @@ export function MomentoEditor(props: MomentoEditorProps) {
                         <FieldGroup label="Producto a Obtener">
                             <input className={inputCls} type="text"
                                 placeholder="¿Qué producto crearán los estudiantes?"
-                                value={editingProduccionItem.nombre_produccion}
-                                onChange={(e) => setEditingProduccionItem({ ...editingProduccionItem, nombre_produccion: e.target.value })} />
+                                value={draftProduccion?.nombre_produccion || ''}
+                                onChange={(e) => setDraftProduccion({ ...draftProduccion, nombre_produccion: e.target.value })} />
                         </FieldGroup>
                         <FieldGroup label="Descripción / Consigna">
                             <textarea className={`${textareaCls} min-h-[350px]`}
                                     placeholder="Describe las instrucciones y consigna para los estudiantes..."
-                                    value={editingProduccionItem.redactado}
-                                    onChange={(e) => setEditingProduccionItem({ ...editingProduccionItem, redactado: e.target.value })} />
+                                    value={draftProduccion?.redactado || ''}
+                                    onChange={(e) => setDraftProduccion({ ...draftProduccion, redactado: e.target.value })} />
                         </FieldGroup>
                         <div className="grid grid-cols-1 gap-4">
                             <FieldGroup label="Instrumento Sugerido">
                                 <input className={inputCls} type="text"
                                     placeholder="Ej: Rúbrica, lista..."
-                                    value={editingProduccionItem.instrumento || ''}
-                                    onChange={(e) => setEditingProduccionItem({ ...editingProduccionItem, instrumento: e.target.value })} />
+                                    value={draftProduccion?.instrumento || ''}
+                                    onChange={(e) => setDraftProduccion({ ...draftProduccion, instrumento: e.target.value })} />
                             </FieldGroup>
                         </div>
-                        <SaveButton gradientStyle={accentCfg.gradientStyle} label={accentCfg.saveLabel} onClick={handleSaveProduccion} isSaving={isSaving} />
+                        <SaveButton gradientStyle={accentCfg.gradientStyle} label={accentCfg.saveLabel} onClick={() => handleSaveProduccion(draftProduccion)} isSaving={isSaving} />
                     </div>
                 )}
 
@@ -200,25 +235,25 @@ export function MomentoEditor(props: MomentoEditorProps) {
                             <FieldGroup label="Categoría">
                                 <input className={inputCls} type="text"
                                     placeholder="Ej: Saber, Hacer..."
-                                    value={editingValoracionItem.categoria}
-                                    onChange={(e) => setEditingValoracionItem({ ...editingValoracionItem, categoria: e.target.value })} />
+                                    value={draftValoracion?.categoria || ''}
+                                    onChange={(e) => setDraftValoracion({ ...draftValoracion, categoria: e.target.value })} />
                             </FieldGroup>
                         </div>
                         <FieldGroup label="Preguntas de Reflexión">
                             <textarea className={`${textareaCls} min-h-[110px]`}
                                     placeholder="¿Qué preguntas guiarán la reflexión del estudiante?"
-                                    value={editingValoracionItem.preguntas}
-                                    onChange={(e) => setEditingValoracionItem({ ...editingValoracionItem, preguntas: e.target.value })} />
+                                    value={draftValoracion?.preguntas || ''}
+                                    onChange={(e) => setDraftValoracion({ ...draftValoracion, preguntas: e.target.value })} />
                         </FieldGroup>
                         <div className="grid grid-cols-1 gap-4">
                             <FieldGroup label="Instrumento">
                                 <input className={inputCls} type="text"
                                     placeholder="Instrumento sugerido..."
-                                    value={editingValoracionItem.instrumento || ''}
-                                    onChange={(e) => setEditingValoracionItem({ ...editingValoracionItem, instrumento: e.target.value })} />
+                                    value={draftValoracion?.instrumento || ''}
+                                    onChange={(e) => setDraftValoracion({ ...draftValoracion, instrumento: e.target.value })} />
                             </FieldGroup>
                         </div>
-                        <SaveButton gradientStyle={accentCfg.gradientStyle} label={accentCfg.saveLabel} onClick={handleSaveValoracion} isSaving={isSaving} />
+                        <SaveButton gradientStyle={accentCfg.gradientStyle} label={accentCfg.saveLabel} onClick={() => handleSaveValoracion(draftValoracion)} isSaving={isSaving} />
                     </div>
                 )}
 
@@ -228,16 +263,16 @@ export function MomentoEditor(props: MomentoEditorProps) {
                         <FieldGroup label="Nombre de la Adaptación">
                             <input className={inputCls} type="text"
                                 placeholder="Nombre de la adaptación curricular..."
-                                value={editingAdaptacionItem.nombre_adaptacion || ''}
-                                onChange={(e) => setEditingAdaptacionItem({ ...editingAdaptacionItem, nombre_adaptacion: e.target.value })} />
+                                value={draftAdaptacion?.nombre_adaptacion || ''}
+                                onChange={(e) => setDraftAdaptacion({ ...draftAdaptacion, nombre_adaptacion: e.target.value })} />
                         </FieldGroup>
                         <FieldGroup label="Redacción / Descripción">
                             <textarea className={`${textareaCls} min-h-[400px]`}
                                     placeholder="Describe cómo se implementará esta adaptación..."
-                                    value={editingAdaptacionItem.redactado || ''}
-                                    onChange={(e) => setEditingAdaptacionItem({ ...editingAdaptacionItem, redactado: e.target.value })} />
+                                    value={draftAdaptacion?.redactado || ''}
+                                    onChange={(e) => setDraftAdaptacion({ ...draftAdaptacion, redactado: e.target.value })} />
                         </FieldGroup>
-                        <SaveButton gradientStyle={accentCfg.gradientStyle} label={accentCfg.saveLabel} onClick={handleSaveAdaptacion} isSaving={isSaving} />
+                        <SaveButton gradientStyle={accentCfg.gradientStyle} label={accentCfg.saveLabel} onClick={() => handleSaveAdaptacion(draftAdaptacion)} isSaving={isSaving} />
                     </div>
                 )}
 
@@ -247,16 +282,16 @@ export function MomentoEditor(props: MomentoEditorProps) {
                         <FieldGroup label="Recurso">
                             <input className={inputCls} type="text"
                                 placeholder="Nombre o descripción del recurso..."
-                                value={editingRecursoItem.recursos || ''}
-                                onChange={(e) => setEditingRecursoItem({ ...editingRecursoItem, recursos: e.target.value })} />
+                                value={draftRecurso?.recursos || ''}
+                                onChange={(e) => setDraftRecurso({ ...draftRecurso, recursos: e.target.value })} />
                         </FieldGroup>
                         <FieldGroup label="Redacción / Uso Pedagógico">
                             <textarea className={`${textareaCls} min-h-[400px]`}
                                     placeholder="¿Cómo se utilizará este recurso en el proceso pedagógico?"
-                                    value={editingRecursoItem.redactado || ''}
-                                    onChange={(e) => setEditingRecursoItem({ ...editingRecursoItem, redactado: e.target.value })} />
+                                    value={draftRecurso?.redactado || ''}
+                                    onChange={(e) => setDraftRecurso({ ...draftRecurso, redactado: e.target.value })} />
                         </FieldGroup>
-                        <SaveButton gradientStyle={accentCfg.gradientStyle} label={accentCfg.saveLabel} onClick={handleSaveRecurso} isSaving={isSaving} />
+                        <SaveButton gradientStyle={accentCfg.gradientStyle} label={accentCfg.saveLabel} onClick={() => handleSaveRecurso(draftRecurso)} isSaving={isSaving} />
                     </div>
                 )}
 
@@ -273,8 +308,8 @@ export function MomentoEditor(props: MomentoEditorProps) {
                             <div className="relative">
                                 <select
                                     className={selectCls}
-                                    value={editingFuenteItem.tipo ?? ''}
-                                    onChange={(e) => setEditingFuenteItem({ ...editingFuenteItem, tipo: e.target.value || null })}
+                                    value={draftFuente?.tipo ?? ''}
+                                    onChange={(e) => setDraftFuente({ ...draftFuente, tipo: e.target.value || null })}
                                 >
                                     <option value="">Seleccionar tipo...</option>
                                     {tiposFuenteCatalogo.map(t => (
@@ -287,34 +322,34 @@ export function MomentoEditor(props: MomentoEditorProps) {
                         <FieldGroup label="Título de la Fuente">
                             <input className={inputCls} type="text"
                                 placeholder="Título del libro, sitio web, video..."
-                                value={editingFuenteItem.titulo_fuente || ''}
-                                onChange={(e) => setEditingFuenteItem({ ...editingFuenteItem, titulo_fuente: e.target.value })} />
+                                value={draftFuente?.titulo_fuente || ''}
+                                onChange={(e) => setDraftFuente({ ...draftFuente, titulo_fuente: e.target.value })} />
                         </FieldGroup>
                         <FieldGroup label="Autor">
                             <input className={inputCls} type="text"
                                 placeholder="Apellido, Nombre o nombre de organización..."
-                                value={editingFuenteItem.autor || ''}
-                                onChange={(e) => setEditingFuenteItem({ ...editingFuenteItem, autor: e.target.value })} />
+                                value={draftFuente?.autor || ''}
+                                onChange={(e) => setDraftFuente({ ...draftFuente, autor: e.target.value })} />
                         </FieldGroup>
                         <FieldGroup label="Año">
                             <input className={inputCls} type="text"
                                 placeholder="Ej: 2024"
-                                value={editingFuenteItem.anio || ''}
-                                onChange={(e) => setEditingFuenteItem({ ...editingFuenteItem, anio: e.target.value })} />
+                                value={draftFuente?.anio || ''}
+                                onChange={(e) => setDraftFuente({ ...draftFuente, anio: e.target.value })} />
                         </FieldGroup>
                         <FieldGroup label="URL">
                             <input className={inputCls} type="text"
                                 placeholder="https://..."
-                                value={editingFuenteItem.url || ''}
-                                onChange={(e) => setEditingFuenteItem({ ...editingFuenteItem, url: e.target.value })} />
+                                value={draftFuente?.url || ''}
+                                onChange={(e) => setDraftFuente({ ...draftFuente, url: e.target.value })} />
                         </FieldGroup>
                         <FieldGroup label="Detalle / Descripción">
                             <textarea className={`${textareaCls} min-h-[100px]`}
                                 placeholder="Descripción adicional, capítulo, páginas, notas..."
-                                value={editingFuenteItem.detalle || ''}
-                                onChange={(e) => setEditingFuenteItem({ ...editingFuenteItem, detalle: e.target.value })} />
+                                value={draftFuente?.detalle || ''}
+                                onChange={(e) => setDraftFuente({ ...draftFuente, detalle: e.target.value })} />
                         </FieldGroup>
-                        <SaveButton gradientStyle={accentCfg.gradientStyle} label={accentCfg.saveLabel} onClick={handleSaveMiFuente} isSaving={isSaving} />
+                        <SaveButton gradientStyle={accentCfg.gradientStyle} label={accentCfg.saveLabel} onClick={() => handleSaveMiFuente(draftFuente)} isSaving={isSaving} />
                     </div>
                 )}
 

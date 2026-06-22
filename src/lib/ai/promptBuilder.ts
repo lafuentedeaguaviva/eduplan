@@ -67,13 +67,24 @@ export function buildMomentoPrompt({ momento, tono, data }: PromptDataContext): 
     `.trim();
   }
 
+  let estructuraASeguir = '';
+  if (momento === 'practica') {
+    estructuraASeguir = `Primero una descripción de la actividad y luego preguntas activadoras.`;
+  } else if (momento === 'teoria') {
+    estructuraASeguir = `Solo la redacción de la estrategia (sin fundamentación extensa ni otros elementos).`;
+  } else if (momento === 'produccion') {
+    estructuraASeguir = `Descripción de la actividad y un solo instrumento sugerido.`;
+  } else if (momento === 'valoracion') {
+    estructuraASeguir = `Siempre preguntas (enfocadas en la reflexión ética y postura crítica).`;
+  }
+
   // Ensamblar el prompt final
   return SYSTEM_PROMPT_MOMENTOS
     .replace('[MOMENTO_NOMBRE]', momentoNombre)
     .replace('[TONO_SELECCIONADO]', tono)
     .replace('[DATOS_ACTIVIDAD]', activityInfo)
     .replace('[DEFINICION_MOMENTO]', definition)
-    .replace('[MOMENTO_NOMBRE]', momentoNombre); // Reemplazar la segunda ocurrencia al final
+    .replace('[ESTRUCTURA_A_SEGUIR]', estructuraASeguir);
 }
 
 export function buildCriterioPrompt({ dimension, tono, data }: PromptDataContext): string {

@@ -283,10 +283,11 @@ export function useAreasController(params: Promise<{ id: string }>) {
     };
 
     const handleDeleteArea = async (id: string, name: string) => {
-        showConfirm(
-            'Confirmar Eliminación',
-            `¿Estás seguro de que deseas eliminar el área "${name}"? Esta acción borrará PERMANENTEMENTE todos los contenidos, planificaciones y diseños asociados. No se puede deshacer.`,
-            async () => {
+        showConfirm({
+            title: 'Confirmar Eliminación',
+            description: `¿Estás seguro de que deseas eliminar el área "${name}"? Esta acción borrará PERMANENTEMENTE todos los contenidos, planificaciones y diseños asociados. No se puede deshacer.`,
+            variant: 'error',
+            onConfirm: async () => {
                 try {
                     const result = await AreasService.deleteArea(id);
                     if (result.success) {
@@ -300,7 +301,7 @@ export function useAreasController(params: Promise<{ id: string }>) {
                     showError('Error de Eliminación', `No se pudo borrar el área: ${error.message || 'Error desconocido'}`);
                 }
             }
-        );
+        });
     };
 
     const deleteContent = async (contentId: number) => {
