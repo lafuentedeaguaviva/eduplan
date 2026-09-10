@@ -1,8 +1,6 @@
+'use client';
+
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, AlignmentType, HeadingLevel, WidthType, BorderStyle, VerticalAlign, PageOrientation, VerticalMergeType } from 'docx';
-import { saveAs } from 'file-saver';
-import ExcelJS from 'exceljs';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import { PDC, FullReportData, PdcProfile, FullReportArea, PlanificacionSemanal, HierarchyRoot } from '@/types';
 
 /**
@@ -361,6 +359,7 @@ export const exportToWord = async (pdcData: PDC, fullData?: FullReportData, view
     });
 
     const blob = await Packer.toBlob(doc);
+    const { saveAs } = await import('file-saver');
     saveAs(blob, `PDC_${pdcData.nombre_pdc || 'report'}.docx`);
 };
 
@@ -368,6 +367,8 @@ export const exportToWord = async (pdcData: PDC, fullData?: FullReportData, view
  * Service to handle PDF Exports via HTML conversion
  */
 export const exportToPDF = async (elementId: string, fileName: string, orientation: 'p' | 'l' = 'p') => {
+    const { default: jsPDF } = await import('jspdf');
+    const { default: html2canvas } = await import('html2canvas');
     try {
         const input = document.getElementById(elementId);
         if (!input) {
@@ -684,6 +685,7 @@ export const exportEvaluationToWord = async (revision: any, evaluations: any, st
 
     const blob = await Packer.toBlob(doc);
     const safeMateria = (revision.materia || "Reporte").replace(/[\/\\:*?"<>|]/g, '_');
+    const { saveAs } = await import('file-saver');
     saveAs(blob, `Informe_Revision_${safeMateria}_${new Date().getTime()}.docx`);
 };
 
@@ -776,6 +778,7 @@ export const exportConsolidatedRevisionsToWord = async (unitName: string, revisi
     });
 
     const blob = await Packer.toBlob(doc);
+    const { saveAs } = await import('file-saver');
     saveAs(blob, `Consolidado_Revisiones_${unitName}.docx`);
 };
 
@@ -826,48 +829,8 @@ export const exportGeneralStatsToWord = async (stats: any, staff: any[]) => {
     });
 
     const blob = await Packer.toBlob(doc);
+    const { saveAs } = await import('file-saver');
     saveAs(blob, `Reporte_Estadistico_UE_${new Date().getFullYear()}.docx`);
-};
-
-/**
- * Service to handle Excel/Dataframe Exports
- */
-export const exportToExcel = async (data: Record<string, unknown>[], fileName: string) => {
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Reporte');
-
-    if (data.length === 0) return;
-
-    const columns = Object.keys(data[0]).map(key => ({
-        header: key.toUpperCase().replace('_', ' '),
-        key: key,
-        width: 20
-    }));
-
-    worksheet.columns = columns;
-
-    data.forEach(item => {
-        const row: Record<string, string | number | boolean | null | undefined> = {};
-        Object.keys(item).forEach(key => {
-            if (typeof item[key] === 'object' && item[key] !== null) {
-                row[key] = JSON.stringify(item[key]);
-            } else {
-                row[key] = item[key] as string | number | boolean | null | undefined;
-            }
-        });
-        worksheet.addRow(row);
-    });
-
-    worksheet.getRow(1).font = { bold: true };
-    worksheet.getRow(1).fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FFE0E0E0' }
-    };
-
-    const buffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    saveAs(blob, `${fileName}.xlsx`);
 };
 
 /**
@@ -954,8 +917,12 @@ export const exportDirectorStatsToWord = async (stats: any, aiReportText: string
                     spacing: { after: 400 }
                 }),
                 new Paragraph({
-                    text: `PDCs Aprobados: ${stats.totalApprovedPDCs}`,
-                    bold: true,
+                    children: [
+                        new TextRun({
+                            text: `PDCs Aprobados: ${stats.totalApprovedPDCs}`,
+                            bold: true
+                        })
+                    ],
                     spacing: { after: 200 }
                 }),
                 
@@ -970,5 +937,6 @@ export const exportDirectorStatsToWord = async (stats: any, aiReportText: string
     });
 
     const blob = await Packer.toBlob(doc);
+    const { saveAs } = await import('file-saver');
     saveAs(blob, `Informe_IA_Director_${new Date().getFullYear()}.docx`);
 };

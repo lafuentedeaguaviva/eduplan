@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSidebar } from '@/contexts/SidebarContext';
@@ -17,7 +18,10 @@ const MENU_ITEMS = [
     { icon: 'calendar_month', label: 'Planificación', href: '/dashboard/planning' },
     { icon: 'edit_document', label: 'Mis PDC', href: '/dashboard/pdcs' },
     { icon: 'send_and_archive', label: 'Gestión de Envíos', href: '/dashboard/revisions' },
+    { icon: 'auto_awesome', label: 'Generación de Materiales', href: '/dashboard/content' },
+    { icon: 'quiz', label: 'Generar Exámenes', href: '/dashboard/examenes' },
     { icon: 'library_books', label: 'Recursos Docentes', href: '/dashboard/resources' },
+    { icon: 'account_balance', label: 'Gestión Institucional', href: '/dashboard/institucional' },
     { icon: 'workspace_premium', label: 'Mi Suscripción', href: '/dashboard/subscription' },
 ];
 
@@ -43,7 +47,8 @@ export function Sidebar() {
 
     const isAdmin = activeRole === 'Administrador';
     const isDirector = activeRole === 'Director';
-    const isProfesor = activeRole === 'Profesor';
+    const isProfesor = activeRole === 'Profesor' || activeRole === 'Docente';
+    const isSecretario = activeRole === 'Secretario';
 
     // Generar menú dinámico para que "Mi Escritorio" apunte al lugar correcto
     const dynamicMenuItems = MENU_ITEMS.map(item => {
@@ -54,11 +59,22 @@ export function Sidebar() {
         return item;
     });
 
+    const [isMounted, setIsMounted] = React.useState(false);
+    React.useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
     // Filtrar menú principal
     const visibleMenuItems = dynamicMenuItems.filter(item => {
-        if (isDirector) return ['/dashboard/director'].includes(item.href);
-        if (isAdmin) return ['/dashboard/admin', '/dashboard/resources'].includes(item.href);
-        if (isProfesor) return true;
+        if (!isMounted) return true; // SSR renderiza todo por defecto para evitar mismatch severo
+        
+        if (isDirector) return ['/dashboard/director', '/dashboard/institucional'].includes(item.href);
+        if (isAdmin) return ['/dashboard/admin', '/dashboard/resources', '/dashboard/institucional'].includes(item.href);
+        if (isSecretario) return ['/dashboard/institucional'].includes(item.href);
+        if (isProfesor) {
+            // El profesor ve todo su set de herramientas habituales
+            return true;
+        }
         return true;
     });
 

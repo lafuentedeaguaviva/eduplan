@@ -6,8 +6,6 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { useDirectorController } from '@/hooks/useDirectorController';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { PdcStatisticsCharts } from '@/components/dashboard/director/PdcStatisticsCharts';
@@ -42,9 +40,11 @@ export default function DirectorReportsPage() {
         }
     };
 
-    const exportTrimestralPDF = () => {
+    const exportTrimestralPDF = async () => {
         setGenerating('trimestral-pdf');
         try {
+            const { default: jsPDF } = await import('jspdf');
+            const { default: autoTable } = await import('jspdf-autotable');
             const doc = new jsPDF();
             const now = new Date().toLocaleDateString();
 
@@ -182,9 +182,11 @@ export default function DirectorReportsPage() {
         }
     };
 
-    const exportTeacherPDF = (teacher: any) => {
+    const exportTeacherPDF = async (teacher: any) => {
         setGenerating(teacher.id || teacher.nombres);
         try {
+            const { default: jsPDF } = await import('jspdf');
+            const { default: autoTable } = await import('jspdf-autotable');
             const doc = new jsPDF();
             const now = new Date().toLocaleDateString();
 

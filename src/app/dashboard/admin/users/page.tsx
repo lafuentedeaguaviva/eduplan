@@ -746,12 +746,14 @@ export default function AdminUsersPage() {
                                 })}
                             </div>
 
-                            {/* Director Unit Selector (TRIAD) */}
-                            {selectedRoles.includes('Director') && (
+                            {/* Director / Secretario Unit Selector (TRIAD) */}
+                            {(selectedRoles.includes('Director') || selectedRoles.includes('Secretario')) && (
                                 <div className="p-4 rounded-xl border-2 border-orange-200 bg-orange-50/30 space-y-3 animate-in slide-in-from-top-2 duration-300">
                                     <div className="flex items-center gap-2 text-orange-600">
                                         <span className="material-symbols-rounded text-base font-black">apartment</span>
-                                        <span className="text-[10px] font-black uppercase tracking-widest">Asignación de Unidad (Director)</span>
+                                        <span className="text-[10px] font-black uppercase tracking-widest">
+                                            Asignación de Unidad ({selectedRoles.includes('Director') ? 'Director' : 'Secretario'})
+                                        </span>
                                     </div>
                                     
                                     <div className="grid grid-cols-2 gap-2">

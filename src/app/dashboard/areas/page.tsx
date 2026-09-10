@@ -59,7 +59,8 @@ export default function WorkAreasPage() {
         area_conocimiento_id: '' as number | '',
         turno_id: '',
         paralelos_ids: [] as string[],
-        director_id: ''
+        director_id: '',
+        horarios: {} as Record<string, any>
     });
 
     // Initial Load
@@ -185,7 +186,8 @@ export default function WorkAreasPage() {
                     area_conocimiento_id: formData.area_conocimiento_id as number,
                     turno_id: formData.turno_id,
                     paralelos_ids: formData.paralelos_ids,
-                    director_id: formData.director_id
+                    director_id: formData.director_id,
+                    horarios: formData.horarios
                 });
             } else {
                 result = await AreasService.createArea({
@@ -194,7 +196,8 @@ export default function WorkAreasPage() {
                     area_conocimiento_id: formData.area_conocimiento_id as number,
                     turno_id: formData.turno_id,
                     paralelos_ids: formData.paralelos_ids,
-                    director_id: formData.director_id
+                    director_id: formData.director_id,
+                    horarios: formData.horarios
                 });
             }
 
@@ -230,7 +233,8 @@ export default function WorkAreasPage() {
             area_conocimiento_id: '',
             turno_id: '',
             paralelos_ids: [],
-            director_id: ''
+            director_id: '',
+            horarios: {}
         });
         setSelectedNivel('');
         setSelectedGrado('');
@@ -280,7 +284,8 @@ export default function WorkAreasPage() {
                 area_conocimiento_id: fullArea.area_conocimiento.id,
                 turno_id: fullArea.turno.id,
                 paralelos_ids: fullArea.paralelos.map(p => p.id),
-                director_id: fullArea.director_id || ''
+                director_id: fullArea.director_id || '',
+                horarios: fullArea.paralelos.reduce((acc: any, p: any) => ({...acc, [p.id]: p.horario || {}}), {})
             });
 
             setShowModal(true);
@@ -317,10 +322,66 @@ export default function WorkAreasPage() {
         setFormData(prev => {
             const exists = prev.paralelos_ids.includes(id);
             if (exists) {
-                return { ...prev, paralelos_ids: prev.paralelos_ids.filter(p => p !== id) };
+                const newHorarios = { ...prev.horarios };
+                delete newHorarios[id];
+                return { ...prev, paralelos_ids: prev.paralelos_ids.filter(p => p !== id), horarios: newHorarios };
             } else {
-                return { ...prev, paralelos_ids: [...prev.paralelos_ids, id] };
+                return { ...prev, paralelos_ids: [...prev.paralelos_ids, id], horarios: { ...prev.horarios, [id]: {} } };
             }
+        });
+    };
+
+    const addBlock = (pid: string) => {
+        const daySelect = document.getElementById(`day-${pid}`) as HTMLSelectElement;
+        const startInput = document.getElementById(`start-${pid}`) as HTMLInputElement;
+        const endInput = document.getElementById(`end-${pid}`) as HTMLInputElement;
+        if (!startInput.value || !endInput.value) {
+            alert("Debe ingresar hora de inicio y fin");
+            return;
+        }
+        if (startInput.value >= endInput.value) {
+            alert("La hora de fin debe ser mayor a la de inicio");
+            return;
+        }
+        
+        const day = daySelect.value;
+        const inicioVal = startInput.value;
+        const finVal = endInput.value;
+        
+        setFormData(prev => {
+            const currentSchedule = prev.horarios[pid] || {};
+            const dayBlocks = currentSchedule[day] || [];
+            return {
+                ...prev,
+                horarios: {
+                    ...prev.horarios,
+                    [pid]: {
+                        ...currentSchedule,
+                        [day]: [...dayBlocks, { inicio: inicioVal, fin: finVal }].sort((a, b) => a.inicio.localeCompare(b.inicio))
+                    }
+                }
+            };
+        });
+        startInput.value = '';
+        endInput.value = '';
+    };
+
+    const removeBlock = (pid: string, day: string, index: number) => {
+        setFormData(prev => {
+            const currentSchedule = prev.horarios[pid] || {};
+            const dayBlocks = [...(currentSchedule[day] || [])];
+            dayBlocks.splice(index, 1);
+            
+            const newSchedule = { ...currentSchedule, [day]: dayBlocks };
+            if (dayBlocks.length === 0) delete newSchedule[day];
+
+            return {
+                ...prev,
+                horarios: {
+                    ...prev.horarios,
+                    [pid]: newSchedule
+                }
+            };
         });
     };
 
@@ -552,8 +613,8 @@ export default function WorkAreasPage() {
 
                                 {/* Paralelos */}
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 mb-2">Paralelos</label>
-                                    <div className="flex flex-wrap gap-2">
+                                    <label className="block text-sm font-medium text-slate-700 mb-2">Paralelos y Horarios</label>
+                                    <div className="flex flex-wrap gap-2 mb-4">
                                         {paralelos.map((p: any) => {
                                             const isSelected = formData.paralelos_ids.includes(p.id);
                                             return (
@@ -570,6 +631,53 @@ export default function WorkAreasPage() {
                                             );
                                         })}
                                     </div>
+                                    
+                                    {/* Configurador de Horarios por Paralelo Seleccionado */}
+                                    {formData.paralelos_ids.length > 0 && (
+                                        <div className="space-y-4">
+                                            {formData.paralelos_ids.map(pid => {
+                                                const paraleloInfo = paralelos.find(p => p.id === pid);
+                                                const schedule = formData.horarios[pid] || {};
+                                                const hasBlocks = Object.keys(schedule).length > 0;
+                                                
+                                                return (
+                                                    <div key={pid} className="p-4 border border-slate-200 rounded-xl bg-slate-50/50">
+                                                        <h4 className="font-bold text-slate-800 mb-3 flex items-center gap-2">
+                                                            <IconSchedule /> Horario - Paralelo {paraleloInfo?.nombre}
+                                                        </h4>
+                                                        
+                                                        {hasBlocks && (
+                                                            <div className="flex flex-col gap-2 mb-4">
+                                                                {Object.entries(schedule).flatMap(([dia, bloques]) => 
+                                                                    (bloques as any[]).map((b, idx) => (
+                                                                        <div key={`${dia}-${idx}`} className="flex justify-between items-center bg-white p-2.5 border border-slate-200 rounded-lg text-sm shadow-sm">
+                                                                            <span className="capitalize font-bold text-blue-600 w-24">{dia}</span>
+                                                                            <span className="text-slate-600 font-medium bg-slate-100 px-2 py-1 rounded-md">{b.inicio} - {b.fin}</span>
+                                                                            <button onClick={() => removeBlock(pid, dia, idx)} className="text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition-colors">
+                                                                                <IconDelete />
+                                                                            </button>
+                                                                        </div>
+                                                                    ))
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                        
+                                                        <div className="flex gap-2 items-center flex-wrap sm:flex-nowrap">
+                                                            <select id={`day-${pid}`} className="p-2.5 border border-slate-200 rounded-lg text-sm bg-white font-medium outline-none focus:border-blue-500 w-full sm:w-auto" defaultValue="lunes">
+                                                                {['lunes', 'martes', 'miercoles', 'jueves', 'viernes'].map(d => <option key={d} value={d} className="capitalize">{d}</option>)}
+                                                            </select>
+                                                            <input type="time" id={`start-${pid}`} className="p-2.5 border border-slate-200 rounded-lg text-sm bg-white font-medium outline-none focus:border-blue-500 w-full sm:w-auto" />
+                                                            <span className="text-slate-400 font-medium hidden sm:block">a</span>
+                                                            <input type="time" id={`end-${pid}`} className="p-2.5 border border-slate-200 rounded-lg text-sm bg-white font-medium outline-none focus:border-blue-500 w-full sm:w-auto" />
+                                                            <Button variant="outline" size="sm" onClick={() => addBlock(pid)} className="w-full sm:w-auto shrink-0 bg-white border-dashed border-2 hover:bg-slate-50 gap-2 font-bold h-10">
+                                                                <IconAdd /> Añadir
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

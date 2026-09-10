@@ -9,8 +9,6 @@ import { exportEvaluationToWord, exportConsolidatedRevisionsToWord, ORDERED_COMP
 import { db } from '@/lib/database';
 import { toast } from 'sonner';
 import { useDirectorController } from '@/hooks/useDirectorController';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
 import { RevisionFormEditor } from '@/components/pdcs/viewer/RevisionFormEditor';
 
 export default function DirectorRevisionsPage() {
@@ -35,9 +33,11 @@ export default function DirectorRevisionsPage() {
                 ? revisions.filter((r: any) => r.estado === 'aprobado')
                 : revisions.filter((r: any) => r.estado === filter);
 
-    const exportTeacherPDF = (teacher: any) => {
+    const exportTeacherPDF = async (teacher: any) => {
         setGenerating(teacher.id || teacher.nombre);
         try {
+            const jsPDF = (await import('jspdf')).default;
+            const autoTable = (await import('jspdf-autotable')).default;
             const doc = new jsPDF();
             const now = new Date().toLocaleDateString();
 
@@ -133,6 +133,9 @@ export default function DirectorRevisionsPage() {
             }
             toast.success("Generando consolidado general en PDF...");
             setGenerating("consolidado_pdf");
+            
+            const jsPDF = (await import('jspdf')).default;
+            const autoTable = (await import('jspdf-autotable')).default;
             
             const doc = new jsPDF('p', 'mm', 'a4');
             const pageWidth = doc.internal.pageSize.width;

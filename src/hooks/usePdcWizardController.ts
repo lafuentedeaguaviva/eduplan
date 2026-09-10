@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AreasService } from '@/services/areas.service';
 import { AuthService } from '@/services/auth.service';
@@ -55,9 +55,11 @@ export function usePdcWizardController() {
     // 3. Logic Hooks
     const designLogic = usePdcDesignLogic(state, { showSuccess, showError });
     
-    const coveredContentIds = Array.from(new Set(state.learningObjectives.flatMap(obj => obj.contentIds.map(id => String(id)))));
+    const coveredContentIds = useMemo(() => 
+        Array.from(new Set(state.learningObjectives.flatMap(obj => obj.contentIds.map(id => String(id))))),
+    [state.learningObjectives]);
     
-    const isContentCovered = (id: string | number): boolean => {
+    const isContentCovered = useCallback((id: string | number): boolean => {
         const strId = String(id);
         if (coveredContentIds.includes(strId)) return true;
         
@@ -75,30 +77,33 @@ export function usePdcWizardController() {
         );
         
         return hasCoveredChild;
-    };
+    }, [coveredContentIds, state.availableContents]);
 
-    const isStep6Complete = state.scheduledMonthContentIds.length === 0 || 
-                           state.scheduledMonthContentIds.every(id => isContentCovered(id));
+    const isStep6Complete = useMemo(() => 
+        state.scheduledMonthContentIds.length === 0 || 
+        state.scheduledMonthContentIds.every(id => isContentCovered(id)),
+    [state.scheduledMonthContentIds, isContentCovered]);
     
-    const pendingContentsCount = state.scheduledMonthContentIds.filter(id => {
-        const content = state.availableContents.find(c => String(c.id) === String(id));
-        return content?.padre_id === null && !isContentCovered(id);
-    }).length;
-
+    const pendingContentsCount = useMemo(() => 
+        state.scheduledMonthContentIds.filter(id => {
+            const content = state.availableContents.find(c => String(c.id) === String(id));
+            return content?.padre_id === null && !isContentCovered(id);
+        }).length,
+    [state.scheduledMonthContentIds, state.availableContents, isContentCovered]);
 
     // Contenidos filtrados para el Paso 6 (Diseño de Objetivos).
-    // Solo muestra los contenidos asignados a semanas (semana_contenido) del mes del PDC.
-    // Si no hay contenidos programados para ese mes en el PAT, el array queda vacío y la UI muestra estado vacío.
-    const filteredContentsForDesign = state.availableContents.filter(c => {
-        const isScheduled = state.scheduledMonthContentIds.includes(String(c.id));
-        if (isScheduled) return true;
-        // También incluir los temas padres cuyos hijos están programados (para mantener jerarquía visual)
-        const hasScheduledChild = state.availableContents.some(child =>
-            String(child.padre_id) === String(c.id) &&
-            state.scheduledMonthContentIds.includes(String(child.id))
-        );
-        return hasScheduledChild;
-    });
+    const filteredContentsForDesign = useMemo(() => 
+        state.availableContents.filter(c => {
+            const isScheduled = state.scheduledMonthContentIds.includes(String(c.id));
+            if (isScheduled) return true;
+            // También incluir los temas padres cuyos hijos están programados (para mantener jerarquía visual)
+            const hasScheduledChild = state.availableContents.some(child =>
+                String(child.padre_id) === String(c.id) &&
+                state.scheduledMonthContentIds.includes(String(child.id))
+            );
+            return hasScheduledChild;
+        }),
+    [state.availableContents, state.scheduledMonthContentIds]);
 
     const navigationHandlers = usePdcWizardNavigation(state, {
         saveCurrentAreaState,

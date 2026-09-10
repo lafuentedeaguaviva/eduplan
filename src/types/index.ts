@@ -112,6 +112,21 @@ export interface UserContent {
     updated_at?: string;
 }
 
+export interface MaterialContenido {
+    id: string;
+    docente_id: string;
+    area_trabajo_id?: string;
+    tema_padre_id?: number;
+    titulo_tema: string;
+    subtemas_incluidos?: any;
+    pdc_revision_id?: string;
+    config_usada?: any;
+    cuerpo_contenido: string;
+    estado: 'Borrador' | 'Finalizado';
+    created_at?: string;
+    updated_at?: string;
+}
+
 // --- Planning ---
 
 export interface PlanificacionSemanal {

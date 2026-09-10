@@ -326,6 +326,18 @@ export const AdminService = {
 
             if (rolesError) throw rolesError;
 
+            // Fetch units where users are personal (Secretario)
+            const { data: personalAssignments, error: personalError } = await supabase
+                .from('unidad_educativa_personal')
+                .select(`
+                    unidad_educativa_id,
+                    perfil_id,
+                    rol_institucional,
+                    unidades_educativas (nombre)
+                `);
+
+            if (personalError) throw personalError;
+
             let areasTrabajo: any[] = [];
             from = 0;
             finished = false;
@@ -362,10 +374,12 @@ export const AdminService = {
             const users = profiles.map(p => {
                 const userAreas = areasTrabajo?.filter((at: any) => at.profesor_id === p.id) || [];
                 const dirAssig = directorAssignments?.find((da: any) => da.perfil_id === p.id);
+                const persAssig = personalAssignments?.find((pa: any) => pa.perfil_id === p.id);
                 
                 const unidadesIds = Array.from(new Set([
                     ...userAreas.map((at: any) => at.unidad_educativa_id),
-                    ...(dirAssig ? [dirAssig.unidad_id] : [])
+                    ...(dirAssig ? [dirAssig.unidad_id] : []),
+                    ...(persAssig ? [persAssig.unidad_educativa_id] : [])
                 ]));
 
                 const distritosIds = Array.from(new Set(userAreas.map((at: any) => at.unidades_educativas?.distrito_id))).filter(id => id !== undefined);
@@ -383,6 +397,15 @@ export const AdminService = {
                     const ueData = dirAssig.unidades_educativas as any;
                     const ueName = (Array.isArray(ueData) ? ueData[0]?.nombre : ueData?.nombre) || 'Unidad';
                     const label = `(DIR ${dirAssig.nivel.toUpperCase()})`;
+                    if (!unidadesNombres.includes(ueName)) {
+                        unidadesNombres = unidadesNombres ? `${ueName} ${label}, ${unidadesNombres}` : `${ueName} ${label}`;
+                    }
+                }
+
+                if (persAssig) {
+                    const ueData = persAssig.unidades_educativas as any;
+                    const ueName = (Array.isArray(ueData) ? ueData[0]?.nombre : ueData?.nombre) || 'Unidad';
+                    const label = `(${persAssig.rol_institucional.toUpperCase()})`;
                     if (!unidadesNombres.includes(ueName)) {
                         unidadesNombres = unidadesNombres ? `${ueName} ${label}, ${unidadesNombres}` : `${ueName} ${label}`;
                     }
@@ -542,6 +565,16 @@ export const AdminService = {
                 // pero lo registramos.
             }
 
+            // También limpiar cualquier asignación como personal (ej: Secretario previo)
+            const { error: cleanPersonalError } = await supabase
+                .from('unidad_educativa_personal')
+                .delete()
+                .eq('perfil_id', userId);
+            
+            if (cleanPersonalError) {
+                console.error('Error al limpiar vinculación previa de personal:', cleanPersonalError);
+            }
+
             if (roles.includes('Director') && unitId) {
                 // Si es Director y hay una unidad seleccionada, vinculamos
                 // Primero limpiamos si alguien más ocupa ese nivel en esa unidad para evitar conflicto UNIQUE
@@ -564,6 +597,20 @@ export const AdminService = {
                 if (insertDirError) {
                     console.error('Error al insertar vinculación de director:', insertDirError);
                     throw new Error(`Error al vincular con la unidad educativa: ${insertDirError.message}`);
+                }
+            } else if (roles.includes('Secretario') && unitId) {
+                // Si es Secretario, lo agregamos a unidad_educativa_personal
+                const { error: insertPersonalError } = await supabase
+                    .from('unidad_educativa_personal')
+                    .insert({
+                        unidad_educativa_id: unitId,
+                        perfil_id: userId,
+                        rol_institucional: 'Secretario'
+                    });
+                
+                if (insertPersonalError) {
+                    console.error('Error al insertar vinculación de secretario:', insertPersonalError);
+                    throw new Error(`Error al vincular con la unidad educativa como Secretario: ${insertPersonalError.message}`);
                 }
             }
 

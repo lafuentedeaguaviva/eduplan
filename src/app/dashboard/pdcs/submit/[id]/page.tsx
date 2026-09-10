@@ -15,8 +15,8 @@ interface Props {
 }
 
 export default function PdcSubmissionPage({ params }: Props) {
-    const { id } = use(params);
     const router = useRouter();
+    const { id } = use(params);
     const searchParams = useSearchParams();
     const mode = (searchParams?.get('mode') as 'ia' | 'original') || 'ia';
 

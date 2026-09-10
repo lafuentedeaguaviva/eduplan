@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { useAdminController } from '@/hooks/useAdminController';
+import { useAuth } from '@/hooks/useAuth';
+import { InstitucionalService } from '@/services/institucional.service';
 
 export default function ResourcesPage() {
     const { 
@@ -15,13 +17,78 @@ export default function ResourcesPage() {
     const [selectedCategory, setSelectedCategory] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
 
+    const { user } = useAuth();
+    const [instResources, setInstResources] = useState<any[]>([]);
+
     useEffect(() => {
         // En esta página no llamamos a checkAccess porque es para todos los docentes
-        loadResourcesData(selectedCategory);
-    }, [selectedCategory]);
+        loadResourcesData(selectedCategory === 'institucional' ? undefined : selectedCategory);
+        
+        // Cargar recursos institucionales (normativas/bienes)
+        if (user && (selectedCategory === 'all' || selectedCategory === 'normativas' || selectedCategory === 'inventario')) {
+            InstitucionalService.getMiUnidadEducativa(user.id).then(ueRes => {
+                if (ueRes.success && ueRes.data) {
+                    InstitucionalService.getRecursosInstitucionales(ueRes.data).then(res => {
+                        if (res.success) setInstResources(res.data);
+                    });
+                }
+            });
+        }
+    }, [selectedCategory, user]);
 
-    const filteredResources = resources.filter(res => {
-        const matchesSearch = res.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    // Mapear recursos institucionales al formato de la grid
+    const mappedNormativas = instResources.filter(r => r.tipo === 'normativa').map(r => ({
+        id: r.id,
+        titulo: r.titulo_nombre,
+        descripcion: r.descripcion || 'Normativa Interna de la Unidad Educativa',
+        tipo_archivo: 'NORMATIVA',
+        peso_archivo: '',
+        url_archivo: r.archivo_url || '#',
+        categoria_id: 'normativas',
+        premium: false,
+        isInstitucional: true
+    }));
+
+    const mappedInventario = instResources.filter(r => r.tipo === 'bien').map(r => ({
+        id: r.id,
+        titulo: r.titulo_nombre,
+        descripcion: r.descripcion || `Estado: ${r.estado_bien} | Cantidad: ${r.cantidad}`,
+        tipo_archivo: 'INVENTARIO',
+        peso_archivo: '',
+        url_archivo: r.archivo_url || '#',
+        categoria_id: 'inventario',
+        premium: false,
+        isInstitucional: true
+    }));
+
+    const cvResource = {
+        id: 'mi-cv',
+        titulo: 'Mi Currículum Vitae',
+        descripcion: 'Gestiona tu información profesional, experiencia y genera tu CV en formato PDF listo para descargar.',
+        tipo_archivo: 'HERRAMIENTA',
+        peso_archivo: '',
+        url_archivo: '/dashboard/docente/cv',
+        categoria_id: 'cv',
+        premium: false,
+        isInstitucional: false,
+        isSystemRoute: true
+    };
+
+    let allResources: any[] = [];
+    if (selectedCategory === 'normativas') {
+        allResources = mappedNormativas;
+    } else if (selectedCategory === 'inventario') {
+        allResources = mappedInventario;
+    } else if (selectedCategory === 'cv') {
+        allResources = [cvResource];
+    } else if (selectedCategory === 'all') {
+        allResources = [cvResource, ...resources, ...mappedNormativas, ...mappedInventario];
+    } else {
+        allResources = resources;
+    }
+
+    const filteredResources = allResources.filter(res => {
+        const matchesSearch = res.titulo.toLowerCase().includes(searchQuery.toLowerCase()) || 
                              res.descripcion?.toLowerCase().includes(searchQuery.toLowerCase());
         return matchesSearch;
     });
@@ -76,6 +143,42 @@ export default function ResourcesPage() {
                         <span className="material-symbols-rounded text-lg">apps</span>
                         Todos
                     </button>
+                    <button
+                        onClick={() => setSelectedCategory('normativas')}
+                        className={cn(
+                            "flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all border shrink-0",
+                            selectedCategory === 'normativas'
+                            ? "bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-900/20"
+                            : "bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-white"
+                        )}
+                    >
+                        <span className="material-symbols-rounded text-lg">gavel</span>
+                        Normativas
+                    </button>
+                    <button
+                        onClick={() => setSelectedCategory('inventario')}
+                        className={cn(
+                            "flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all border shrink-0",
+                            selectedCategory === 'inventario'
+                            ? "bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-900/20"
+                            : "bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-white"
+                        )}
+                    >
+                        <span className="material-symbols-rounded text-lg">inventory_2</span>
+                        Inventario
+                    </button>
+                    <button
+                        onClick={() => setSelectedCategory('cv')}
+                        className={cn(
+                            "flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all border shrink-0",
+                            selectedCategory === 'cv'
+                            ? "bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-900/20"
+                            : "bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-white"
+                        )}
+                    >
+                        <span className="material-symbols-rounded text-lg">badge</span>
+                        Mi CV
+                    </button>
                     {categories.map((cat) => (
                         <button
                             key={cat.id}
@@ -115,9 +218,18 @@ export default function ResourcesPage() {
                                     </div>
                                 )}
 
+                                {res.isInstitucional && (
+                                    <div className="absolute top-6 right-6">
+                                        <div className="bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
+                                            <span className="material-symbols-rounded text-[14px]">account_balance</span>
+                                            <span className="text-[9px] font-black uppercase tracking-wider">Mi Escuela</span>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="size-14 bg-slate-950 rounded-2xl border border-slate-800 flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-500">
                                     <span className="material-symbols-rounded text-2xl">
-                                        {categories.find(c => c.id === res.categoria_id)?.icono || 'description'}
+                                        {res.isInstitucional ? (res.tipo_archivo === 'INVENTARIO' ? 'inventory_2' : 'gavel') : (res.isSystemRoute ? 'badge' : (categories.find(c => c.id === res.categoria_id)?.icono || 'description'))}
                                     </span>
                                 </div>
 
@@ -135,14 +247,27 @@ export default function ResourcesPage() {
                                         <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Formato</p>
                                         <p className="text-xs font-bold text-slate-400 uppercase">{res.tipo_archivo} {res.peso_archivo && `• ${res.peso_archivo}`}</p>
                                     </div>
-                                    <a 
-                                        href={res.url_archivo} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        className="size-12 rounded-2xl bg-indigo-600/10 text-indigo-400 hover:bg-indigo-600 hover:text-white transition-all flex items-center justify-center border border-indigo-500/20"
-                                    >
-                                        <span className="material-symbols-rounded">download</span>
-                                    </a>
+                                    {res.isSystemRoute ? (
+                                        <a 
+                                            href={res.url_archivo} 
+                                            className="size-12 rounded-2xl bg-indigo-600/10 text-indigo-400 hover:bg-indigo-600 hover:text-white transition-all flex items-center justify-center border border-indigo-500/20"
+                                        >
+                                            <span className="material-symbols-rounded">arrow_forward</span>
+                                        </a>
+                                    ) : res.url_archivo !== '#' ? (
+                                        <a 
+                                            href={res.url_archivo} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="size-12 rounded-2xl bg-indigo-600/10 text-indigo-400 hover:bg-indigo-600 hover:text-white transition-all flex items-center justify-center border border-indigo-500/20"
+                                        >
+                                            <span className="material-symbols-rounded">download</span>
+                                        </a>
+                                    ) : (
+                                        <div className="size-12 rounded-2xl bg-slate-800/50 text-slate-600 flex items-center justify-center border border-slate-800">
+                                            <span className="material-symbols-rounded">visibility_off</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         ))}

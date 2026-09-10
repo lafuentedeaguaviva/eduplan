@@ -360,12 +360,26 @@ export const PdcService = {
 
             if (unidadIds.length === 0) return { data: [], error: null, success: true };
 
-            const { data: perfiles, error } = await db
-                .from('perfiles')
-                .select('id, nombres, apellidos, foto_url, email')
+            const { data: areasData, error } = await db
+                .from('areas_trabajo')
+                .select(`
+                    profesor_id,
+                    perfiles!areas_trabajo_profesor_id_fkey (
+                        id, nombres, apellidos, foto_url, email
+                    )
+                `)
                 .in('unidad_educativa_id', unidadIds);
 
-            if (error || !perfiles) return { data: [], error, success: !error };
+            if (error || !areasData) return { data: [], error, success: !error };
+
+            // Extraer perfiles únicos
+            const perfilesMap = new Map();
+            areasData.forEach((item: any) => {
+                if (item.perfiles && !perfilesMap.has(item.profesor_id)) {
+                    perfilesMap.set(item.profesor_id, item.perfiles);
+                }
+            });
+            const perfiles = Array.from(perfilesMap.values());
 
             // Enrich with PDC count per teacher
             const enriched = await Promise.all(

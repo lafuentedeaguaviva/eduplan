@@ -50,18 +50,9 @@ export default function ReportHeader({ initialPdc, fullReportData, viewMode, rev
             <div className="flex flex-wrap md:flex-row gap-4 w-full xl:w-auto items-center justify-end shrink-0">
                 <button
                     onClick={() => exportToWord(initialPdc, fullReportData, viewMode)}
-                    disabled={isIAPending}
-                    className={`flex-1 md:flex-none px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 shadow-xl group bg-white border ${isIAPending ? 'border-slate-300 text-slate-400 cursor-not-allowed opacity-70' : 'hover:bg-slate-50 border-slate-100 text-slate-700 shadow-blue-900/5 hover:scale-105 active:scale-95'}`}
+                    className={`flex-1 md:flex-none px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 shadow-xl group bg-white border hover:bg-slate-50 border-slate-100 text-slate-700 shadow-blue-900/5 hover:scale-105 active:scale-95`}
                 >
-                    {isIAPending ? (
-                        <>
-                            <span className="material-symbols-rounded animate-spin">sync</span> Procesando IA...
-                        </>
-                    ) : (
-                        <>
-                            <span className="text-lg transition-transform text-blue-500 group-hover:rotate-12">📄</span> Microsoft Word
-                        </>
-                    )}
+                    <span className="text-lg transition-transform text-blue-500 group-hover:rotate-12">📄</span> Microsoft Word
                 </button>
                 
                 <button
@@ -75,18 +66,9 @@ export default function ReportHeader({ initialPdc, fullReportData, viewMode, rev
                             }
                         );
                     }}
-                    disabled={isIAPending}
-                    className={`flex-1 md:flex-none px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-xl flex items-center justify-center gap-3 group ${isIAPending ? 'bg-slate-400 text-white/70 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/25 hover:shadow-2xl hover:scale-[1.02] active:scale-95'}`}
+                    className={`flex-1 md:flex-none px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-xl flex items-center justify-center gap-3 group bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-500/25 hover:shadow-2xl hover:scale-[1.02] active:scale-95`}
                 >
-                    {isIAPending ? (
-                        <>
-                            <span className="material-symbols-rounded animate-spin">sync</span> Procesando IA...
-                        </>
-                    ) : (
-                        <>
-                            <span className="text-lg transition-transform text-white group-hover:scale-110">📥</span> Exportar PDF
-                        </>
-                    )}
+                    <span className="text-lg transition-transform text-white group-hover:scale-110">📥</span> Exportar PDF
                 </button>
             </div>
         </header>

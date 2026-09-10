@@ -15,8 +15,9 @@ import { Skeleton } from '@/components/ui/Atoms';
 
 const QUICK_ACTIONS = [
     { icon: 'add_circle', label: 'Nuevo PDC', href: '/dashboard/pdcs/new', color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' },
+    { icon: 'menu_book', label: 'Nuevo Contenido', href: '/dashboard/content/new', color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100' },
     { icon: 'calendar_month', label: 'Planificar', href: '/dashboard/planning', color: 'text-purple-600', bg: 'bg-purple-50', border: 'border-purple-100' },
-    { icon: 'school', label: 'Mis Áreas', href: '/dashboard/areas', color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100' },
+    { icon: 'school', label: 'Mis Áreas', href: '/dashboard/areas', color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100' },
     { icon: 'collections_bookmark', label: 'Biblioteca', href: '/dashboard/library', color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100' },
 ];
 
@@ -29,10 +30,14 @@ export default function DashboardPage() {
 
     useEffect(() => {
         const fetchDashboardData = async () => {
+            if (profileLoading) return;
+            if (!profile?.id) {
+                setLoadingPdcs(false);
+                return;
+            }
+
             try {
-                const { data: sessionData } = await AuthService.getSession();
-                const userId = sessionData.session?.user?.id;
-                if (!userId) return;
+                const userId = profile.id;
 
                 // --- Fetch PDCs (critical) ---
                 const pdcRes = await PdcService.getPDCs(userId);
@@ -57,7 +62,7 @@ export default function DashboardPage() {
             }
         };
         fetchDashboardData();
-    }, []);
+    }, [profile, profileLoading]);
 
     const handleDelete = async (id: string) => {
         if (!confirm('¿Eliminar este PDC permanentemente?')) return;
@@ -153,7 +158,7 @@ export default function DashboardPage() {
             </div>
 
             {/* ─── QUICK ACTIONS ─── */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 {QUICK_ACTIONS.map((action) => (
                     <Link key={action.href} href={action.href}>
                         <div className={`group flex items-center gap-4 p-5 bg-white border-2 ${action.border} rounded-[1.5rem] hover:shadow-medium transition-all duration-300 hover:-translate-y-0.5 cursor-pointer`}>

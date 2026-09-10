@@ -261,3 +261,42 @@ export const SYSTEM_PROMPT_BATCH_MOMENTOS = SYSTEM_PROMPT_MOMENTOS;
 export const SYSTEM_PROMPT_RECURSOS_FUENTES = SYSTEM_PROMPT_WEEKLY_BATCH;
 /** @deprecated Consolidado en SYSTEM_PROMPT_WEEKLY_BATCH */
 export const SYSTEM_PROMPT_ADAPTACIONES = SYSTEM_PROMPT_WEEKLY_BATCH;
+
+/**
+ * Generador de Contenidos Educativos
+ * Utiliza el PDC como base para estructurar material didáctico.
+ */
+export const SYSTEM_PROMPT_CONTENT_GENERATOR = buildPrompt(
+    `Tu tarea es generar contenido educativo didáctico e integral EXCLUSIVAMENTE TEÓRICO para estudiantes, basado en el tema asignado y la planificación del docente.`,
+    `**INSTRUCCIONES CRÍTICAS SOBRE EL ENFOQUE:**
+- ESTRICTAMENTE PROHIBIDO incluir ejercicios, tareas, cuestionarios, prácticas o actividades de resolución.
+- Este material es pura lectura, asimilación teórica y ejemplos ilustrativos para el estudiante.
+- El contenido DEBE estar redactado directamente PARA EL ESTUDIANTE y su nivel de comprensión.
+- Destinatario: [CURSO]
+- Usa un lenguaje claro, accesible, pedagógico y adecuado para su edad.
+
+**INSTRUCCIÓN TÉCNICA (MATEMÁTICAS):** Si el contenido requiere ecuaciones o fórmulas, utiliza obligatoriamente formato LaTeX encerrado entre símbolos de dólar dobles ($$) para bloques y simples ($) para fórmulas en línea.
+
+**Estructura solicitada por el docente:** 
+[ESTRUCTURA_SELECCIONADA]
+
+**Secciones adicionales a incluir obligatoriamente:** 
+[COMPONENTES_PEDAGOGICOS]
+
+**Toques extra obligatorios:** 
+[EXTRAS_SELECCIONADOS]
+
+**Profundidad y Longitud del Contenido:**
+[PROFUNDIDAD]
+
+**Contexto del Plan de Clase (PDC) para inspirar la didáctica (Sólo para referencias conceptuales, NO para tareas):**
+[CONTEXTO_MOMENTOS_PDC]
+
+**Información base proporcionada (Úsala como fuente principal de verdad para la teoría):**
+[CONTEXTO_EXTRA_PDF]
+
+**Tema General:** [TEMA_PADRE]
+**Subtemas a Desarrollar:** [LISTA_SUBTEMAS]
+
+Desarrolla el documento final en formato Markdown estructurado, limpio y listo para exportarse.`
+);

@@ -21,6 +21,8 @@ interface AIConfig {
         strategic_objective: string;
         criteria_batch: string;
         weekly_batch: string;
+        content_generator: string;
+        exam_generator: string;
     };
 }
 
@@ -149,7 +151,45 @@ Si no hay discapacidad global, devuelve "".
 - Debes devolver exactamente un objeto por cada semana en la entrada, manteniendo su "semana_id".
 
 **Datos de Semanas:**
-[DATOS_SEMANAS]`
+[DATOS_SEMANAS]`,
+        content_generator: `Tu tarea es generar contenido educativo didáctico e integral para estudiantes, basado en el tema asignado y la planificación del docente.
+
+**INSTRUCCIÓN TÉCNICA (MATEMÁTICAS):** Si el contenido requiere ecuaciones o fórmulas, utiliza obligatoriamente formato LaTeX encerrado entre símbolos de dólar dobles ($$) para bloques y simples ($) para fórmulas en línea.
+
+**Estructura solicitada por el docente:** 
+[ESTRUCTURA_SELECCIONADA]
+
+**Secciones adicionales a incluir obligatoriamente:** 
+[COMPONENTES_PEDAGOGICOS]
+
+**Toques extra obligatorios:** 
+[EXTRAS_SELECCIONADOS]
+
+**Contexto del Plan de Clase (PDC) para inspirar la didáctica:**
+[CONTEXTO_MOMENTOS_PDC]
+(Práctica -> Ejemplos reales; Teoría -> Conceptos; Valoración -> Reflexión; Producción -> Ejercicios prácticos).
+
+**Información base proporcionada (Úsala como fuente principal de verdad para la teoría):**
+[CONTEXTO_EXTRA_PDF]
+
+**Tema General:** [TEMA_PADRE]
+**Subtemas a Desarrollar:** [LISTA_SUBTEMAS]
+
+Desarrolla el documento final en formato Markdown estructurado, limpio y listo para exportarse.`,
+        exam_generator: `Eres un Arquitecto de Evaluaciones Pedagógicas y Gamificación de Alto Nivel.
+Tu misión es diseñar un examen o prueba escrita basándote ESTRICTAMENTE en la información enviada (Contexto, Criterios de Evaluación y Módulos Activados).
+
+**REGLA CRÍTICA 1 (ESTRUCTURA):**
+Tu respuesta DEBE ser un objeto JSON válido, con EXACTAMENTE las siguientes propiedades:
+1. "markdown_documento": Un texto en formato Markdown de alta calidad listo para imprimir y repartir a los estudiantes. Este es el examen físico.
+2. "reactivos": Un arreglo de objetos JSON donde extraes CADA PREGUNTA individual generada en el examen (Para guardarlas en la Base de Datos).
+3. "instrumentos": Un arreglo de objetos JSON que represente las Rúbricas o Listas de Cotejo generadas para calificar el Hacer y Ser.
+
+**REGLA CRÍTICA 2 (NARRATIVA):**
+Si el docente especifica una "NARRATIVA GAMIFICADA SELECCIONADA", debes transformar el lenguaje del examen para sumergir al alumno en esa historia. Ejemplo: Si es Escape Room, las preguntas son "acertijos para abrir la puerta".
+
+**REGLA CRÍTICA 3 (MODULOS ACTIVADOS):**
+Solo puedes generar los bloques que el docente haya activado explícitamente en "MÓDULOS ACTIVADOS PARA LA PRUEBA". Si un módulo no está en la lista, omítelo por completo. Los puntajes deben sumar siempre 100 puntos en base a los módulos presentes.`
     }
 };
 
@@ -380,6 +420,78 @@ export default function AIConfigPage() {
                             <div className="flex flex-wrap gap-2">
                                 {['[TONO_SELECCIONADO]', '[CORRECCION_PROFUNDIDAD]', '[CONTEXTO_PDC]', '[DATOS_MOMENTOS]', '[DATOS_RECURSOS_FUENTES]', '[DATOS_ADAPTACIONES]'].map(tag => (
                                     <Badge key={tag} variant="outline" className="bg-cyan-50 text-cyan-700 text-[9px] font-bold py-1 px-3 border border-cyan-100">{tag}</Badge>
+                                ))}
+                            </div>
+                        </div>
+                    </Card>
+
+                    {/* Content Generator Prompt */}
+                    <Card className="p-10 border-none shadow-premium bg-white">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                            <div className="flex items-center gap-4">
+                                <div className="size-14 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600">
+                                    <span className="material-symbols-rounded text-3xl">auto_stories</span>
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-black text-slate-900 tracking-tight">Generador de Contenidos</h3>
+                                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Creación de Material Didáctico y PDFs</p>
+                                </div>
+                            </div>
+                            <div className="flex gap-2">
+                                <Button size="sm" variant="outline" onClick={() => handleRestore('content_generator')} className="rounded-xl text-xs h-9 px-4 font-bold">Restaurar</Button>
+                                <Button size="sm" onClick={handleSave} isLoading={saving} className="rounded-xl text-xs h-9 px-4 font-bold bg-slate-900 text-white shadow-md">Guardar</Button>
+                            </div>
+                        </div>
+                        
+                        <div className="space-y-4">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Template del Prompt System</label>
+                            <textarea 
+                                className="w-full min-h-[350px] p-6 bg-slate-50 border-2 border-slate-100 rounded-[2rem] font-mono text-sm text-slate-700 outline-none focus:border-emerald-500 transition-all leading-relaxed"
+                                value={config.prompts.content_generator}
+                                onChange={(e) => setConfig({
+                                    ...config,
+                                    prompts: { ...config.prompts, content_generator: e.target.value }
+                                })}
+                            />
+                            <div className="flex flex-wrap gap-2">
+                                {['[ESTRUCTURA_SELECCIONADA]', '[COMPONENTES_PEDAGOGICOS]', '[EXTRAS_SELECCIONADOS]', '[PROFUNDIDAD]', '[CURSO]', '[CONTEXTO_MOMENTOS_PDC]', '[CONTEXTO_EXTRA_PDF]', '[TEMA_PADRE]', '[LISTA_SUBTEMAS]'].map(tag => (
+                                    <Badge key={tag} variant="outline" className="bg-emerald-50 text-emerald-700 text-[9px] font-bold py-1 px-3 border border-emerald-100">{tag}</Badge>
+                                ))}
+                            </div>
+                        </div>
+                    </Card>
+
+                    {/* Exam Generator Prompt */}
+                    <Card className="p-10 border-none shadow-premium bg-white">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+                            <div className="flex items-center gap-4">
+                                <div className="size-14 rounded-2xl bg-orange-50 flex items-center justify-center text-orange-600">
+                                    <span className="material-symbols-rounded text-3xl">quiz</span>
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-black text-slate-900 tracking-tight">Generador de Exámenes Gamificados</h3>
+                                    <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Saber, Hacer, Ser y Módulos Dinámicos</p>
+                                </div>
+                            </div>
+                            <div className="flex gap-2">
+                                <Button size="sm" variant="outline" onClick={() => handleRestore('exam_generator')} className="rounded-xl text-xs h-9 px-4 font-bold">Restaurar</Button>
+                                <Button size="sm" onClick={handleSave} isLoading={saving} className="rounded-xl text-xs h-9 px-4 font-bold bg-slate-900 text-white shadow-md">Guardar</Button>
+                            </div>
+                        </div>
+                        
+                        <div className="space-y-4">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Template del Prompt System</label>
+                            <textarea 
+                                className="w-full min-h-[350px] p-6 bg-slate-50 border-2 border-slate-100 rounded-[2rem] font-mono text-sm text-slate-700 outline-none focus:border-orange-500 transition-all leading-relaxed"
+                                value={config.prompts.exam_generator}
+                                onChange={(e) => setConfig({
+                                    ...config,
+                                    prompts: { ...config.prompts, exam_generator: e.target.value }
+                                })}
+                            />
+                            <div className="flex flex-wrap gap-2">
+                                {['[CONTEXTO_PDC]', '[CRITERIOS_EVALUACION]', '[NARRATIVA]', '[MODULOS_ACTIVADOS]'].map(tag => (
+                                    <Badge key={tag} variant="outline" className="bg-orange-50 text-orange-700 text-[9px] font-bold py-1 px-3 border border-orange-100">{tag}</Badge>
                                 ))}
                             </div>
                         </div>

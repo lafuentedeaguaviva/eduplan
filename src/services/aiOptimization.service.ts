@@ -208,13 +208,11 @@ export const AiOptimizationService = {
      * Refina una área específica del PDC.
      */
     async refineArea(pdcAreaId: string, areaTrabajoId: string, tone: TonoRedaccion, depth: string, userId: string, accessToken: string, onProgress?: (msg: string, stepProgress?: number) => void) {
-        onProgress?.(`Iniciando optimización concurrente del área...`, 5);
-        // Ejecutar refinamientos en paralelo
-        await Promise.all([
-            this._refineObjectives(pdcAreaId, tone, depth, userId, accessToken, onProgress),
-            this._refineCriteria(pdcAreaId, tone, depth, userId, accessToken, onProgress),
-            this._refineWeeklyData(pdcAreaId, areaTrabajoId, tone, depth, userId, accessToken, onProgress)
-        ]);
+        onProgress?.(`Iniciando optimización secuencial del área...`, 5);
+        // Ejecutar refinamientos secuencialmente para evitar cuellos de botella y errores 429
+        await this._refineObjectives(pdcAreaId, tone, depth, userId, accessToken, onProgress);
+        await this._refineCriteria(pdcAreaId, tone, depth, userId, accessToken, onProgress);
+        await this._refineWeeklyData(pdcAreaId, areaTrabajoId, tone, depth, userId, accessToken, onProgress);
     },
 
     /**
@@ -656,11 +654,10 @@ export const AiOptimizationService = {
 
         const template = dynamicConfig?.prompts?.weekly_batch || SYSTEM_PROMPT_WEEKLY_BATCH;
 
-        // --- 5. Llamar a la IA y Parsear JSON (Por Chunks Concurrentes) ---
-        const CHUNK_SIZE = 1; // Mantenemos en 1 para robustez, pero lanzamos en paralelo
+        // --- 5. Llamar a la IA y Parsear JSON (Por Chunks Secuenciales) ---
+        const CHUNK_SIZE = 1; // Mantenemos en 1 para robustez y ejecutamos secuencialmente
         const totalChunks = Math.ceil(finalWeekDataStrings.length / CHUNK_SIZE);
 
-        const chunkPromises = [];
         for (let i = 0; i < finalWeekDataStrings.length; i += CHUNK_SIZE) {
             const chunkIndex = Math.floor(i / CHUNK_SIZE) + 1;
             const chunkStrings = finalWeekDataStrings.slice(i, i + CHUNK_SIZE);
@@ -672,119 +669,116 @@ export const AiOptimizationService = {
                 .replace('[CONTEXTO_PDC]', contextStr)
                 .replace('[DATOS_SEMANAS]', datosSemanasStr);
 
-            chunkPromises.push((async () => {
-                onProgress?.(`Refinando semanas en lote (Grupo ${chunkIndex} de ${totalChunks})...`);
+            onProgress?.(`Refinando semanas secuencialmente (Semana ${chunkIndex} de ${totalChunks})...`);
+            
+            try {
+                // console.log(`\n\n========== PROMPT ENVIADO A IA (SEMANAS BATCH CHUNK ${chunkIndex}) ==========\n${prompt}\n========================================================\n`);
+                const rawResponse = await this._callProxy(prompt);
                 
-                try {                    // console.log(`\n\n========== PROMPT ENVIADO A IA (SEMANAS BATCH CHUNK ${chunkIndex}) ==========\n${prompt}\n========================================================\n`);
-                    const rawResponse = await this._callProxy(prompt);
-                    
-                    const extractJsonArray = (text: string) => {
-                        const start = text.indexOf('[');
-                        const end = text.lastIndexOf(']');
-                        if (start !== -1 && end !== -1 && end > start) {
-                            return text.substring(start, end + 1);
-                        }
-                        return text.replace(/```json/g, '').replace(/```/g, '').trim();
-                    };
-
-                    let parsedArray: any = null;
-                    try {
-                        parsedArray = JSON.parse(extractJsonArray(rawResponse));
-                    } catch (e) {
-                        console.warn(`[AiOptimization] JSON.parse falló para lote de semanas (Chunk ${chunkIndex}). Aplicando fallback...`);
-                        console.warn(`RAW RESPONSE FAILED TO PARSE:`, rawResponse);
+                const extractJsonArray = (text: string) => {
+                    const start = text.indexOf('[');
+                    const end = text.lastIndexOf(']');
+                    if (start !== -1 && end !== -1 && end > start) {
+                        return text.substring(start, end + 1);
                     }
+                    return text.replace(/```json/g, '').replace(/```/g, '').trim();
+                };
 
-                    if (parsedArray) {
-                        const items = Array.isArray(parsedArray) ? parsedArray : (parsedArray.semanas || [parsedArray]);
-                        const updatePromises = items.map(async (weekResult: any) => {
-                            if (!weekResult.semana_id) return;
-                            
-                            // IF situacionGlobal is empty, force adaptaciones_especiales_ia to empty
-                            const finalAdaptacionesEspeciales = situacionGlobal ? (weekResult.adaptaciones_especiales_ia || '') : '';
-                            
-                            const originalWeek = finalWeeks.find(w => w.id === weekResult.semana_id);
-                            const fuentesDb = await db.from('mi_fuente').select('titulo_fuente, autor, detalle').eq('planificacion_semanal_id', weekResult.semana_id);
-                            const fteList = (fuentesDb.data && fuentesDb.data.length > 0) ? fuentesDb.data : (Array.isArray(originalWeek?.fuentes) ? originalWeek.fuentes : []);
-                            
-                            let finalRecursosFuentes = weekResult.recursos_fuentes_ia || '';
-                            // Eliminar cualquier sección de "Fuentes de Apoyo" que la IA haya alucinado
-                            finalRecursosFuentes = finalRecursosFuentes.replace(/\n*?\**Fuentes(?: de [Aa]poyo)?\**:(?:\n|.)*$/i, '').trim();
-                            
-                            if (fteList && fteList.length > 0) {
-                                const fStr = fteList.map((f: any) => `- ${f.titulo_fuente || ''} (${f.autor || ''})`).join('\n');
-                                if (finalRecursosFuentes) finalRecursosFuentes += `\n\nFuentes de Apoyo:\n${fStr}`;
-                                else finalRecursosFuentes = `Fuentes de Apoyo:\n${fStr}`;
-                            }
-                            
-                            await db.from('planificacion_semanal')
-                                .update({
-                                    momentos_ia: this._cleanMomentos(weekResult.momentos_ia || ''),
-                                    recursos_fuentes_ia: finalRecursosFuentes,
-                                    adaptaciones_basicas_ia: weekResult.adaptaciones_basicas_ia || '',
-                                    adaptaciones_especiales_ia: finalAdaptacionesEspeciales
-                                })
-                                .eq('id', weekResult.semana_id);
-                        });
-                        await Promise.all(updatePromises);
-                    } else if (chunkStrings.length === 1) {
-                        // Fallback si el chunk tiene 1 sola semana y la IA mandó texto raw
-                        const weekIdMatch = chunkStrings[0].match(/--- SEMANA_ID: (.*?) ---/);
-                        if (weekIdMatch && weekIdMatch[1]) {
-                            const weekId = weekIdMatch[1].trim();
-                            
-                            const extractSection = (text: string, jsonKey: string, spanishTitle: string, backupTitle: string, backupTitle2: string) => {
-                                const regex = new RegExp(`"${jsonKey}"\\s*:\\s*"([^"]*)"`, 'i');
-                                const match = text.match(regex);
-                                if (match && match[1]) return match[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
-                                
-                                const regexStr = new RegExp(`(?:${spanishTitle}|${backupTitle}|${backupTitle2}):?\\s*\\n?([\\s\\S]*?)(?:\\n\\n[A-Z]|$)`, 'i');
-                                const matchStr = text.match(regexStr);
-                                if (matchStr && matchStr[1]) return matchStr[1].trim();
-                                
-                                return '';
-                            };
-
-                            let momentosIa = extractSection(rawResponse, 'momentos_ia', 'Momentos', 'Momentos_IA', 'momentos_ia');
-                            if (!momentosIa) {
-                                const cleanText = rawResponse.replace(/```json/g, '').replace(/```/g, '').trim();
-                                if (!cleanText.includes('{') && !cleanText.includes('}')) {
-                                    momentosIa = cleanText;
-                                }
-                            }
-
-                            let extractedRecursos = extractSection(rawResponse, 'recursos_fuentes_ia', 'Recursos y Fuentes', 'Recursos_Fuentes_IA', 'recursos_fuentes_ia');
-                            // Eliminar cualquier sección de "Fuentes de Apoyo" que la IA haya alucinado
-                            extractedRecursos = extractedRecursos.replace(/\n*?\**Fuentes(?: de [Aa]poyo)?\**:(?:\n|.)*$/i, '').trim();
-                            
-                            const originalWeek = finalWeeks.find(w => w.id === weekId);
-                            const fuentesDb = await db.from('mi_fuente').select('titulo_fuente, autor, detalle').eq('planificacion_semanal_id', weekId);
-                            const fteList = (fuentesDb.data && fuentesDb.data.length > 0) ? fuentesDb.data : (Array.isArray(originalWeek?.fuentes) ? originalWeek.fuentes : []);
-                            
-                            if (fteList && fteList.length > 0) {
-                                const fStr = fteList.map((f: any) => `- ${f.titulo_fuente || ''} (${f.autor || ''})`).join('\n');
-                                if (extractedRecursos) extractedRecursos += `\n\nFuentes de Apoyo:\n${fStr}`;
-                                else extractedRecursos = `Fuentes de Apoyo:\n${fStr}`;
-                            }
-
-                            await db.from('planificacion_semanal')
-                                .update({
-                                    momentos_ia: this._cleanMomentos(momentosIa),
-                                    recursos_fuentes_ia: extractedRecursos,
-                                    adaptaciones_basicas_ia: extractSection(rawResponse, 'adaptaciones_basicas_ia', 'Adaptaciones Básicas', 'Adaptaciones_Básicas_IA', 'adaptaciones_basicas_ia'),
-                                    adaptaciones_especiales_ia: situacionGlobal ? extractSection(rawResponse, 'adaptaciones_especiales_ia', 'Adaptaciones Especiales', 'Adaptaciones_Especiales_IA', 'adaptaciones_especiales_ia') : ''
-                                })
-                                .eq('id', weekId);
-                        }
-                    }
-                    onProgress?.(`✅ Semanas procesadas (Grupo ${chunkIndex}).`, 40 / totalChunks);
+                let parsedArray: any = null;
+                try {
+                    parsedArray = JSON.parse(extractJsonArray(rawResponse));
                 } catch (e) {
-                    console.error(`Error procesando lote de semanas (Chunk ${chunkIndex}) para area ${pdcAreaId}:`, e);
+                    console.warn(`[AiOptimization] JSON.parse falló para lote de semanas (Chunk ${chunkIndex}). Aplicando fallback...`);
+                    console.warn(`RAW RESPONSE FAILED TO PARSE:`, rawResponse);
                 }
-            })());
+
+                if (parsedArray) {
+                    const items = Array.isArray(parsedArray) ? parsedArray : (parsedArray.semanas || [parsedArray]);
+                    const updatePromises = items.map(async (weekResult: any) => {
+                        if (!weekResult.semana_id) return;
+                        
+                        // IF situacionGlobal is empty, force adaptaciones_especiales_ia to empty
+                        const finalAdaptacionesEspeciales = situacionGlobal ? (weekResult.adaptaciones_especiales_ia || '') : '';
+                        
+                        const originalWeek = finalWeeks.find(w => w.id === weekResult.semana_id);
+                        const fuentesDb = await db.from('mi_fuente').select('titulo_fuente, autor, detalle').eq('planificacion_semanal_id', weekResult.semana_id);
+                        const fteList = (fuentesDb.data && fuentesDb.data.length > 0) ? fuentesDb.data : (Array.isArray(originalWeek?.fuentes) ? originalWeek.fuentes : []);
+                        
+                        let finalRecursosFuentes = weekResult.recursos_fuentes_ia || '';
+                        // Eliminar cualquier sección de "Fuentes de Apoyo" que la IA haya alucinado
+                        finalRecursosFuentes = finalRecursosFuentes.replace(/\n*?\**Fuentes(?: de [Aa]poyo)?\**:(?:\n|.)*$/i, '').trim();
+                        
+                        if (fteList && fteList.length > 0) {
+                            const fStr = fteList.map((f: any) => `- ${f.titulo_fuente || ''} (${f.autor || ''})`).join('\n');
+                            if (finalRecursosFuentes) finalRecursosFuentes += `\n\nFuentes de Apoyo:\n${fStr}`;
+                            else finalRecursosFuentes = `Fuentes de Apoyo:\n${fStr}`;
+                        }
+                        
+                        await db.from('planificacion_semanal')
+                            .update({
+                                momentos_ia: this._cleanMomentos(weekResult.momentos_ia || ''),
+                                recursos_fuentes_ia: finalRecursosFuentes,
+                                adaptaciones_basicas_ia: weekResult.adaptaciones_basicas_ia || '',
+                                adaptaciones_especiales_ia: finalAdaptacionesEspeciales
+                            })
+                            .eq('id', weekResult.semana_id);
+                    });
+                    await Promise.all(updatePromises);
+                } else if (chunkStrings.length === 1) {
+                    // Fallback si el chunk tiene 1 sola semana y la IA mandó texto raw
+                    const weekIdMatch = chunkStrings[0].match(/--- SEMANA_ID: (.*?) ---/);
+                    if (weekIdMatch && weekIdMatch[1]) {
+                        const weekId = weekIdMatch[1].trim();
+                        
+                        const extractSection = (text: string, jsonKey: string, spanishTitle: string, backupTitle: string, backupTitle2: string) => {
+                            const regex = new RegExp(`"${jsonKey}"\\s*:\\s*"([^"]*)"`, 'i');
+                            const match = text.match(regex);
+                            if (match && match[1]) return match[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
+                            
+                            const regexStr = new RegExp(`(?:${spanishTitle}|${backupTitle}|${backupTitle2}):?\\s*\\n?([\\s\\S]*?)(?:\\n\\n[A-Z]|$)`, 'i');
+                            const matchStr = text.match(regexStr);
+                            if (matchStr && matchStr[1]) return matchStr[1].trim();
+                            
+                            return '';
+                        };
+
+                        let momentosIa = extractSection(rawResponse, 'momentos_ia', 'Momentos', 'Momentos_IA', 'momentos_ia');
+                        if (!momentosIa) {
+                            const cleanText = rawResponse.replace(/```json/g, '').replace(/```/g, '').trim();
+                            if (!cleanText.includes('{') && !cleanText.includes('}')) {
+                                momentosIa = cleanText;
+                            }
+                        }
+
+                        let extractedRecursos = extractSection(rawResponse, 'recursos_fuentes_ia', 'Recursos y Fuentes', 'Recursos_Fuentes_IA', 'recursos_fuentes_ia');
+                        // Eliminar cualquier sección de "Fuentes de Apoyo" que la IA haya alucinado
+                        extractedRecursos = extractedRecursos.replace(/\n*?\**Fuentes(?: de [Aa]poyo)?\**:(?:\n|.)*$/i, '').trim();
+                        
+                        const originalWeek = finalWeeks.find(w => w.id === weekId);
+                        const fuentesDb = await db.from('mi_fuente').select('titulo_fuente, autor, detalle').eq('planificacion_semanal_id', weekId);
+                        const fteList = (fuentesDb.data && fuentesDb.data.length > 0) ? fuentesDb.data : (Array.isArray(originalWeek?.fuentes) ? originalWeek.fuentes : []);
+                        
+                        if (fteList && fteList.length > 0) {
+                            const fStr = fteList.map((f: any) => `- ${f.titulo_fuente || ''} (${f.autor || ''})`).join('\n');
+                            if (extractedRecursos) extractedRecursos += `\n\nFuentes de Apoyo:\n${fStr}`;
+                            else extractedRecursos = `Fuentes de Apoyo:\n${fStr}`;
+                        }
+
+                        await db.from('planificacion_semanal')
+                            .update({
+                                momentos_ia: this._cleanMomentos(momentosIa),
+                                recursos_fuentes_ia: extractedRecursos,
+                                adaptaciones_basicas_ia: extractSection(rawResponse, 'adaptaciones_basicas_ia', 'Adaptaciones Básicas', 'Adaptaciones_Básicas_IA', 'adaptaciones_basicas_ia'),
+                                adaptaciones_especiales_ia: situacionGlobal ? extractSection(rawResponse, 'adaptaciones_especiales_ia', 'Adaptaciones Especiales', 'Adaptaciones_Especiales_IA', 'adaptaciones_especiales_ia') : ''
+                            })
+                            .eq('id', weekId);
+                    }
+                }
+                onProgress?.(`✅ Semanas procesadas (Semana ${chunkIndex}).`, 40 / totalChunks);
+            } catch (e) {
+                console.error(`Error procesando lote de semanas (Chunk ${chunkIndex}) para area ${pdcAreaId}:`, e);
+            }
         }
-        
-        await Promise.all(chunkPromises);
     },
 
     /**

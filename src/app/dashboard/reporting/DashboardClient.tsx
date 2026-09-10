@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { exportToWord, exportToExcel } from '@/lib/exportService';
+import { exportToWord } from '@/lib/exportService';
+import { exportToExcel } from '@/lib/excelExport.service';
 import { createClient } from '@/utils/supabase/client';
 import Link from 'next/link';
 

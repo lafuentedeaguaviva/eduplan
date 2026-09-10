@@ -53,12 +53,12 @@ export const AreasService = {
 
         const areasWithParalelos = await Promise.all(data.map(async (area: any) => {
             const { data: paralelosData } = await db.from('area_trabajo_paralelo')
-                .select('paralelo:paralelos(id, nombre)')
+                .select('horario, paralelo:paralelos(id, nombre)')
                 .eq('area_trabajo_id', area.id);
 
             return {
                 ...area,
-                paralelos: paralelosData?.map((p: any) => p.paralelo) || []
+                paralelos: paralelosData?.map((p: any) => ({...p.paralelo, horario: p.horario || {}})) || []
             };
         }));
 
@@ -125,6 +125,7 @@ export const AreasService = {
         turno_id: string;
         paralelos_ids: string[];
         director_id?: string | null;
+        horarios?: Record<string, any>;
     }): Promise<ServiceResponse<any>> {
         const { data: area, error: areaError } = await db.from('areas_trabajo')
             .insert({
@@ -147,7 +148,8 @@ export const AreasService = {
         if (data.paralelos_ids.length > 0) {
             const paralelosInserts = data.paralelos_ids.map(pid => ({
                 area_trabajo_id: area.id,
-                paralelo_id: pid
+                paralelo_id: pid,
+                horario: data.horarios ? (data.horarios[pid] || {}) : {}
             }));
 
             const { error: paralelosError } = await db.from('area_trabajo_paralelo')
@@ -174,6 +176,7 @@ export const AreasService = {
         turno_id: string;
         paralelos_ids: string[];
         director_id?: string | null;
+        horarios?: Record<string, any>;
     }): Promise<ServiceResponse<any>> {
         const { error: areaError } = await db.from('areas_trabajo')
             .update({
@@ -203,7 +206,8 @@ export const AreasService = {
         if (data.paralelos_ids.length > 0) {
             const paralelosInserts = data.paralelos_ids.map(pid => ({
                 area_trabajo_id: id,
-                paralelo_id: pid
+                paralelo_id: pid,
+                horario: data.horarios ? (data.horarios[pid] || {}) : {}
             }));
 
             const { error: paralelosError } = await db.from('area_trabajo_paralelo')
@@ -274,12 +278,12 @@ export const AreasService = {
         }
 
         const { data: paralelosData } = await db.from('area_trabajo_paralelo')
-            .select('paralelo:paralelos(id, nombre)')
+            .select('horario, paralelo:paralelos(id, nombre)')
             .eq('area_trabajo_id', data.id);
 
         const area = {
             ...data,
-            paralelos: paralelosData?.map((p: any) => p.paralelo) || []
+            paralelos: paralelosData?.map((p: any) => ({...p.paralelo, horario: p.horario || {}})) || []
         } as unknown as AreaTrabajo;
 
         return { data: area, error: null, success: true };

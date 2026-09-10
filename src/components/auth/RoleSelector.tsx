@@ -19,7 +19,7 @@ export function RoleSelector() {
     const roles = [
         {
             id: 'Profesor',
-            label: 'Profesor',
+            label: 'Docente',
             description: 'Gestiona tus PDCs, bibliotecas y actividades pedagógicas.',
             icon: GraduationCap,
             color: 'text-indigo-500',
@@ -46,6 +46,16 @@ export function RoleSelector() {
             bg: 'bg-rose-50',
             border: 'border-rose-100',
             shadow: 'shadow-rose-500/10'
+        },
+        {
+            id: 'Secretario',
+            label: 'Secretario',
+            description: 'Gestión de recursos institucionales, normativas y bienes.',
+            icon: Settings, // Puedes cambiar el icono si prefieres
+            color: 'text-emerald-500',
+            bg: 'bg-emerald-50',
+            border: 'border-emerald-100',
+            shadow: 'shadow-emerald-500/10'
         }
     ].filter(r => profile.roles?.includes(r.id));
 

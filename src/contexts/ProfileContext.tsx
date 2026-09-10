@@ -32,55 +32,62 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
     const fetchProfile = async () => {
         setLoading(true);
         try {
-            const { data: { session } } = await AuthService.getSession();
-            if (session?.user) {
-                const res = await ProfileService.getProfile(session.user.id);
-                
-                // Extraer metadata de Google para fallback manual
-                const metadata = session.user.user_metadata;
-                const googleName = metadata?.full_name || '';
-                const googleAvatar = metadata?.avatar_url || '';
+            // Añadir un timeout global de 5 segundos para evitar que la interfaz se quede en "Cargando..."
+            // si alguna llamada a Supabase se bloquea.
+            await Promise.race([
+                (async () => {
+                    const { data: { session } } = await AuthService.getSession();
 
-                if (res.success && res.data) {
-                    const profileData = {
-                        ...res.data,
-                        foto_url: res.data.foto_url || googleAvatar,
-                        nombres: res.data.nombres || googleName.split(' ')[0] || '',
-                        apellidos: res.data.apellidos || googleName.split(' ').slice(1).join(' ') || '',
-                    };
-                    setProfile(profileData);
+                    if (session?.user) {
+                        const res = await ProfileService.getProfile(session.user.id);
+                        
+                        // Extraer metadata de Google para fallback manual
+                        const metadata = session.user.user_metadata;
+                        const googleName = metadata?.full_name || '';
+                        const googleAvatar = metadata?.avatar_url || '';
 
-                    // Lógica de Rol Activo:
-                    // 1. Intentar recuperar de localStorage
-                    const savedRole = localStorage.getItem('eduplan_active_role');
-                    const roles = profileData.roles || [];
-                    
-                    if (savedRole && roles.includes(savedRole)) {
-                        setActiveRoleState(savedRole);
-                    } else if (roles.length === 1) {
-                        // Si solo hay uno, ese es el activo
-                        setActiveRoleState(roles[0]);
-                    } else {
-                        // Si hay varios y no hay guardado, forzamos selección (selector mostrará null)
-                        setActiveRoleState(null);
+                        if (res.success && res.data) {
+                            const profileData = {
+                                ...res.data,
+                                foto_url: res.data.foto_url || googleAvatar,
+                                nombres: res.data.nombres || googleName.split(' ')[0] || '',
+                                apellidos: res.data.apellidos || googleName.split(' ').slice(1).join(' ') || '',
+                            };
+                            setProfile(profileData);
+
+                            // Lógica de Rol Activo
+                            const savedRole = localStorage.getItem('eduplan_active_role');
+                            const roles = profileData.roles || [];
+                            
+                            if (savedRole && roles.includes(savedRole)) {
+                                setActiveRoleState(savedRole);
+                            } else if (roles.length === 1) {
+                                setActiveRoleState(roles[0]);
+                            } else {
+                                setActiveRoleState(null);
+                            }
+                        } else {
+                            // Fallback inicial con datos de Google
+                            const fallbackProfile = {
+                                id: session.user.id,
+                                email: session.user.email || '',
+                                nombres: googleName.split(' ')[0] || '',
+                                apellidos: googleName.split(' ').slice(1).join(' ') || '',
+                                foto_url: googleAvatar,
+                                creditos: 0,
+                                solicitudes_ia_hoy: 0,
+                                ultima_solicitud_ia: new Date().toISOString().split('T')[0],
+                                roles: ['Profesor'],
+                            } as UserProfile;
+                            setProfile(fallbackProfile);
+                            setActiveRoleState('Profesor');
+                        }
                     }
-                } else {
-                    // Fallback inicial con datos de Google
-                    const fallbackProfile = {
-                        id: session.user.id,
-                        email: session.user.email || '',
-                        nombres: googleName.split(' ')[0] || '',
-                        apellidos: googleName.split(' ').slice(1).join(' ') || '',
-                        foto_url: googleAvatar,
-                        creditos: 0,
-                        solicitudes_ia_hoy: 0,
-                        ultima_solicitud_ia: new Date().toISOString().split('T')[0],
-                        roles: ['Profesor'],
-                    } as UserProfile;
-                    setProfile(fallbackProfile);
-                    setActiveRoleState('Profesor');
-                }
-            }
+                })(),
+                new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Profile fetch global timeout')), 15000)
+                )
+            ]);
         } catch (error) {
             console.error('Error fetching profile in context:', error);
         } finally {

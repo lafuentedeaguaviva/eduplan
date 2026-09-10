@@ -1,7 +1,4 @@
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, AlignmentType, HeadingLevel, WidthType, BorderStyle, VerticalAlign, PageOrientation, VerticalMergeType } from 'docx';
-import { saveAs } from 'file-saver';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import { PDCMaster, FullReportData, FullReportArea, PlanificacionSemanal, HierarchyRoot } from '@/types';
 
 /**
@@ -9,6 +6,51 @@ import { PDCMaster, FullReportData, FullReportArea, PlanificacionSemanal, Hierar
  * Follows the specific layout defined in src2 reference.
  */
 export const ExportService = {
+    /**
+     * Genera un examen en formato Word (.docx) a partir del Markdown de la IA.
+     */
+    async exportExamenToWord(markdown: string, fileName: string = "Examen_Generado") {
+        const doc = new Document({
+            sections: [
+                {
+                    properties: {
+                        page: { margin: { top: 1000, right: 1000, bottom: 1000, left: 1000 } }
+                    },
+                    children: markdown.split('\n').map((line) => {
+                        const isHeading1 = line.startsWith('# ');
+                        const isHeading2 = line.startsWith('## ');
+                        const isHeading3 = line.startsWith('### ');
+                        const isBoldItem = line.startsWith('**') || line.includes('**');
+                        
+                        let text = line.replace(/#/g, '').trim();
+                        let bold = false;
+                        
+                        // Parseo simplificado de negritas
+                        if (isBoldItem) {
+                             text = text.replace(/\*\*/g, '');
+                             bold = true;
+                        }
+
+                        let heading = undefined;
+                        if (isHeading1) heading = HeadingLevel.HEADING_1;
+                        if (isHeading2) heading = HeadingLevel.HEADING_2;
+                        if (isHeading3) heading = HeadingLevel.HEADING_3;
+
+                        return new Paragraph({
+                            children: [new TextRun({ text, bold, size: heading ? 28 : 24 })],
+                            heading,
+                            spacing: { after: 200 }
+                        });
+                    })
+                }
+            ]
+        });
+
+        const blob = await Packer.toBlob(doc);
+        const { saveAs } = await import('file-saver');
+        saveAs(blob, `${fileName}.docx`);
+    },
+
     /**
      * Generates a professional Word document matching pedagogical standards.
      */
@@ -254,7 +296,8 @@ export const ExportService = {
         });
 
         const blob = await Packer.toBlob(doc);
-        saveAs(blob, `PDC_${pdcData.nombre_pdc || 'Reporte'}.docx`);
+        const { saveAs } = await import('file-saver');
+    saveAs(blob, `PDC_${pdcData.nombre_pdc || 'Reporte'}.docx`);
     },
 
     /**
@@ -267,6 +310,7 @@ export const ExportService = {
         // --- PAGE BREAK LOGIC ---
         const mX = 15; // 15mm margin
         const mY = 15; // 15mm margin
+        const { default: jsPDF } = await import('jspdf');
         const tempPdf = new jsPDF(orientation, 'mm', 'a4');
         const pdfWidthInitial = tempPdf.internal.pageSize.getWidth() - (mX * 2);
         const pdfHeightInitial = tempPdf.internal.pageSize.getHeight() - (mY * 2);
@@ -318,6 +362,7 @@ export const ExportService = {
         }
         // --- END PAGE BREAK LOGIC ---
 
+        const { default: html2canvas } = await import('html2canvas');
         const canvas = await html2canvas(input, {
             scale: 2,
             useCORS: true,
