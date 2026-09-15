@@ -22,7 +22,7 @@ const MENU_ITEMS = [
     { icon: 'quiz', label: 'Generar Exámenes', href: '/dashboard/examenes' },
     { icon: 'library_books', label: 'Recursos Docentes', href: '/dashboard/resources' },
     { icon: 'account_balance', label: 'Gestión Institucional', href: '/dashboard/institucional' },
-    { icon: 'workspace_premium', label: 'Mi Suscripción', href: '/dashboard/subscription' },
+    { icon: 'account_balance_wallet', label: 'Mi Billetera', href: '/dashboard/billing' },
 ];
 
 export function Sidebar() {
@@ -89,7 +89,7 @@ export function Sidebar() {
                 isCollapsed ? "px-4 justify-center" : "px-5 justify-between"
             )}>
                 {!isCollapsed && (
-                    <Link href="/dashboard" className="flex items-center gap-3 group overflow-hidden">
+                    <div className="flex items-center gap-3 group overflow-hidden">
                         <div className="size-8 bento-gradient-1 rounded-xl flex items-center justify-center text-white shadow-md shadow-blue-900/30 group-hover:shadow-blue-500/25 transition-all shrink-0">
                             <span className="material-symbols-rounded text-lg font-black">lightbulb</span>
                         </div>
@@ -113,10 +113,10 @@ export function Sidebar() {
                                 onClick={handleSwitchRole}
                                 className="text-[9px] font-black uppercase tracking-widest text-indigo-400 truncate cursor-pointer hover:text-indigo-300 transition-colors"
                             >
-                                {activeRole || 'Cargando...'}
+                                {loading ? 'Cargando...' : (activeRole || 'Selecciona un Rol')}
                             </span>
                         </div>
-                    </Link>
+                    </div>
                 )}
                 {isCollapsed && (
                     <div className="size-8 bento-gradient-1 rounded-xl flex items-center justify-center text-white shrink-0">
@@ -376,9 +376,9 @@ export function Sidebar() {
                                         {loading ? 'Cargando...' : `${profile?.nombres || 'Usuario'} ${profile?.apellidos || ''}`}
                                     </p>
                                     <div className="flex items-center gap-1.5 mt-0.5">
-                                        <span className={cn("size-1.5 rounded-full animate-pulse", profile?.suscripcion ? "bg-indigo-400" : "bg-emerald-400")} />
+                                        <span className={cn("size-1.5 rounded-full animate-pulse", profile?.ultimo_plan_comprado ? "bg-indigo-400" : "bg-emerald-400")} />
                                         <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest group-hover:text-slate-400 transition-colors">
-                                            {profile?.suscripcion?.plan_nombre || 'Plan Gratuito'}
+                                            {profile?.ultimo_plan_comprado || 'Plan Demo'} • {profile?.monedas_disponibles || 0} 🪙
                                         </p>
                                     </div>
                                 </div>

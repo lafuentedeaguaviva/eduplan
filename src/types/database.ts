@@ -22,14 +22,20 @@ export interface DbPerfil {
     nombres: string;
     /** Apellidos del usuario */
     apellidos: string;
+    /** Género del usuario */
+    genero: string | null;
     /** Correo electrónico institucional o personal */
     email: string;
     /** Número de celular de contacto */
     celular: string | null;
     /** URL de la imagen de perfil */
     foto_url: string | null;
-    /** Créditos disponibles para generación por IA */
+    /** Créditos antiguos (deprecado en favor de monedas) */
     creditos: number;
+    /** Monedas del nuevo sistema (EduCoins) */
+    monedas_disponibles?: number;
+    /** Último plan comprado por el usuario */
+    ultimo_plan_comprado?: string;
     /** Indica si el usuario completó su configuración inicial */
     estado_completitud: boolean;
     /** Fecha de creación del perfil */
@@ -47,6 +53,52 @@ export interface DbRol {
     nombre: string;
     /** Descripción de las capacidades del rol */
     descripcion: string | null;
+}
+
+// =============================================================================
+// 1.5. SISTEMA DE MONETIZACIÓN (EDUCOINS)
+// =============================================================================
+
+export interface DbConfigMonetizacion {
+    id: string;
+    costo_pdc_secundaria: number;
+    costo_pdc_primaria: number;
+    costo_examen: number;
+    costo_autocompletar: number;
+    bono_registro_inicial: number;
+    updated_at: string;
+}
+
+export interface DbPaqueteMonedas {
+    id: string;
+    nombre: string;
+    descripcion: string | null;
+    precio_bob: number;
+    monedas_otorgadas: number;
+    activo: boolean;
+    orden: number;
+}
+
+export interface DbPagoQr {
+    id: string;
+    perfil_id: string;
+    paquete_id: string | null;
+    monto_bob: number;
+    comprobante_url: string;
+    estado: 'Pendiente' | 'Aprobado' | 'Rechazado';
+    revisado_por: string | null;
+    fecha_solicitud: string;
+    fecha_revision: string | null;
+}
+
+export interface DbHistorialTransacciones {
+    id: string;
+    perfil_id: string;
+    tipo: 'Recarga' | 'Gasto IA' | 'Bono Demo' | 'Reembolso';
+    descripcion: string;
+    monto_monedas: number;
+    saldo_resultante: number;
+    fecha: string;
 }
 
 // =============================================================================
@@ -589,6 +641,10 @@ export interface Database {
             biblioteca_evaluacion_adaptaciones_especiales: { Row: DbBibliotecaEvaluacionBase; };
             catalogo_verbos: { Row: DbCatalogoVerbo; };
             catalogo_complementos: { Row: DbCatalogoComplemento; };
+            config_monetizacion: { Row: DbConfigMonetizacion; };
+            paquetes_monedas: { Row: DbPaqueteMonedas; };
+            pagos_qr: { Row: DbPagoQr; };
+            historial_transacciones: { Row: DbHistorialTransacciones; };
         };
     };
 }

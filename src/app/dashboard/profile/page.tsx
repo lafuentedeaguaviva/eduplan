@@ -209,28 +209,7 @@ export default function ProfilePage() {
                             </div>
                         ))}
 
-                        {/* API Key Field */}
-                        <div className="md:col-span-2 mt-4 pt-6 border-t border-slate-100">
-                            <div className="flex items-center gap-3 mb-4">
-                                <div className="size-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-                                    <span className="material-symbols-rounded text-lg font-black">key</span>
-                                </div>
-                                <span className="font-black text-slate-800 tracking-tight">Configuración de IA (Opcional)</span>
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="soft-label">Gemini API Key</label>
-                                <Input
-                                    type="password"
-                                    value={formData.gemini_api_key}
-                                    onChange={(e) => setFormData({ ...formData, gemini_api_key: e.target.value })}
-                                    placeholder="Pega tu clave de Google AI Studio aquí..."
-                                    className="bg-slate-50/80 border-slate-200 focus:bg-white h-12 rounded-2xl font-mono text-xs"
-                                />
-                                <p className="text-[10px] text-slate-400 font-medium px-1">
-                                    Si no usas Google OAuth, puedes obtener una clave gratuita en <a href="https://aistudio.google.com/app/apikey" target="_blank" className="text-blue-500 hover:underline">Google AI Studio</a>.
-                                </p>
-                            </div>
-                        </div>
+
                     </div>
 
                     {/* Error */}

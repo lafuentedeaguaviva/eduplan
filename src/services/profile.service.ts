@@ -18,6 +18,7 @@ export interface UserProfile {
     email: string;
     nombres: string;
     apellidos: string;
+    genero?: string | null;
     titulo?: string;
     celular?: string;
     foto_url?: string;

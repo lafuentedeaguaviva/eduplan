@@ -335,6 +335,7 @@ export function RevisionFormEditor({ revision, onBack, onSaveSuccess, onProgress
                                         toast.error("Completa el Formulario de Evaluación antes de enviar al profesor.");
                                         setIsPanelOpen(true);
                                     } else {
+                                        setIsPanelOpen(false);
                                         setConfirmReturnOpen(true);
                                     }
                                 } : handlePreviewSend} 
@@ -787,7 +788,10 @@ export function RevisionFormEditor({ revision, onBack, onSaveSuccess, onProgress
                 evaluations={evaluations}
                 setEvaluations={setEvaluations}
                 isReadOnly={isReadOnly || !isDirectorView}
-                onSaveAction={() => setConfirmReturnOpen(true)}
+                onSaveAction={() => {
+                    setIsPanelOpen(false);
+                    setConfirmReturnOpen(true);
+                }}
                 onSaveProgress={handleSaveEvaluationProgress}
                 onExport={handleExportEvaluation}
                 isSaving={isSavingEvaluation}

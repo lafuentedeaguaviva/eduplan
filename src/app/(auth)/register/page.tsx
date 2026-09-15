@@ -22,6 +22,7 @@ export default function RegisterPage() {
 
     const [googleLoading, setGoogleLoading] = useState(false);
     const [googleError, setGoogleError] = useState<string | null>(null);
+    const [acceptedTerms, setAcceptedTerms] = useState(false);
 
     const handleGoogleRegister = async () => {
         setGoogleLoading(true);
@@ -56,12 +57,12 @@ export default function RegisterPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#0a0c10] relative overflow-hidden font-sans selection:bg-blue-500/30 selection:text-white flex items-center justify-center p-6">
+        <div className="min-h-screen bg-slate-200 relative overflow-hidden font-sans selection:bg-indigo-500/30 selection:text-indigo-900 flex items-center justify-center p-6">
             {/* Background Architecture - Ultra Premium Mesh */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-600/20 blur-[120px] rounded-full animate-pulse-slow"></div>
-                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-600/20 blur-[120px] rounded-full animate-float"></div>
-                <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-purple-600/10 blur-[100px] rounded-full animate-pulse"></div>
+                <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-blue-500/10 blur-[120px] rounded-full animate-pulse-slow"></div>
+                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-500/10 blur-[120px] rounded-full animate-float"></div>
+                <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-purple-500/10 blur-[100px] rounded-full animate-pulse"></div>
                 
                 <div 
                     className="absolute inset-0 opacity-[0.03]" 
@@ -75,8 +76,8 @@ export default function RegisterPage() {
                     <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-700 rounded-[2rem] text-3xl text-white shadow-[0_20px_40px_rgba(37,99,235,0.3)] mb-6 transform hover:rotate-6 transition-all duration-500 cursor-pointer">
                         ✨
                     </div>
-                    <h1 className="text-5xl font-black text-white tracking-tighter mb-1 leading-none italic">
-                        EduPlan<span className="text-blue-400">Pro</span>
+                    <h1 className="text-5xl font-black text-slate-900 tracking-tighter mb-1 leading-none italic">
+                        EduPlan<span className="text-indigo-600">Pro</span>
                     </h1>
                     <p className="text-slate-500 font-bold text-[10px] uppercase tracking-[0.5em] opacity-80">
                         Crea tu futuro pedagógico
@@ -85,12 +86,12 @@ export default function RegisterPage() {
 
                 {/* Glassmorphic Auth Card */}
                 <div className="relative group">
-                    <div className="absolute -inset-1 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-[4rem] blur opacity-25"></div>
+                    <div className="absolute -inset-1 bg-gradient-to-r from-blue-500/20 to-indigo-500/20 rounded-[4rem] blur opacity-50"></div>
                     
-                    <div className="relative bg-[#11141b]/90 backdrop-blur-3xl rounded-[3.5rem] p-10 border border-white/10 shadow-2xl overflow-hidden transition-all duration-500 group-hover:border-white/20">
+                    <div className="relative bg-white rounded-[3.5rem] p-10 border border-slate-100 shadow-[0_20px_50px_rgba(8,112,184,0.07)] overflow-hidden transition-all duration-500">
                         <div className="space-y-8 relative z-10">
                             <div className="text-center space-y-2">
-                                <h2 className="text-2xl font-black text-white tracking-tight uppercase">
+                                <h2 className="text-2xl font-black text-slate-900 tracking-tight uppercase">
                                     Registro de Docente
                                 </h2>
                                 <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em]">
@@ -132,15 +133,22 @@ export default function RegisterPage() {
                             {/* Divider */}
                             <div className="relative py-2 text-center">
                                 <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                                    <div className="w-full border-t border-white/5"></div>
+                                    <div className="w-full border-t border-slate-200"></div>
                                 </div>
-                                <span className="relative px-4 bg-[#11141b] text-slate-600 text-[10px] font-black uppercase tracking-[0.3em]">
+                                <span className="relative px-4 bg-white text-slate-400 text-[10px] font-black uppercase tracking-[0.3em]">
                                     o completa tus datos
                                 </span>
                             </div>
 
                             {/* Traditional Form */}
-                            <form onSubmit={handleRegister} className="space-y-4">
+                            <form onSubmit={(e) => {
+                                if (!acceptedTerms) {
+                                    e.preventDefault();
+                                    alert('Debes aceptar los Términos y Condiciones para continuar.');
+                                    return;
+                                }
+                                handleRegister(e);
+                            }} className="space-y-4">
                                 <div className="grid grid-cols-2 gap-4">
                                     <Input
                                         name="nombre"
@@ -148,7 +156,7 @@ export default function RegisterPage() {
                                         required
                                         value={formData.nombre}
                                         onChange={handleInputChange}
-                                        className="bg-white/5 border-white/10 text-white placeholder:text-slate-600 h-12 rounded-2xl"
+                                        className="bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 h-12 rounded-2xl focus:border-indigo-500 focus:ring-indigo-500/20"
                                     />
                                     <Input
                                         name="apellido"
@@ -156,7 +164,7 @@ export default function RegisterPage() {
                                         required
                                         value={formData.apellido}
                                         onChange={handleInputChange}
-                                        className="bg-white/5 border-white/10 text-white placeholder:text-slate-600 h-12 rounded-2xl"
+                                        className="bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 h-12 rounded-2xl focus:border-indigo-500 focus:ring-indigo-500/20"
                                     />
                                 </div>
 
@@ -167,8 +175,8 @@ export default function RegisterPage() {
                                     required
                                     value={formData.email}
                                     onChange={handleInputChange}
-                                    className="bg-white/5 border-white/10 text-white placeholder:text-slate-600 h-12 rounded-2xl"
-                                    icon={<span className="material-symbols-rounded text-lg">mail</span>}
+                                    className="bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 h-12 rounded-2xl focus:border-indigo-500 focus:ring-indigo-500/20"
+                                    icon={<span className="material-symbols-rounded text-slate-400 text-lg">mail</span>}
                                 />
                                 <Input
                                     name="password"
@@ -177,15 +185,32 @@ export default function RegisterPage() {
                                     required
                                     value={formData.password}
                                     onChange={handleInputChange}
-                                    className="bg-white/5 border-white/10 text-white placeholder:text-slate-600 h-12 rounded-2xl"
-                                    icon={<span className="material-symbols-rounded text-lg">key</span>}
+                                    className="bg-slate-50 border-slate-200 text-slate-900 placeholder:text-slate-400 h-12 rounded-2xl focus:border-indigo-500 focus:ring-indigo-500/20"
+                                    icon={<span className="material-symbols-rounded text-slate-400 text-lg">key</span>}
                                 />
+
+                                {/* Términos y Condiciones */}
+                                <div className="flex items-start gap-3 mt-4">
+                                    <input 
+                                        type="checkbox" 
+                                        id="terms" 
+                                        checked={acceptedTerms}
+                                        onChange={(e) => setAcceptedTerms(e.target.checked)}
+                                        className="mt-1 size-4 rounded bg-slate-50 border-slate-300 text-indigo-600 focus:ring-indigo-500/20"
+                                        required
+                                    />
+                                    <label htmlFor="terms" className="text-[11px] text-slate-500 leading-tight">
+                                        He leído y acepto los <span className="text-indigo-600 cursor-pointer hover:underline font-bold">Términos y Condiciones</span>. 
+                                        Autorizo explícitamente a EduPlan Pro al uso y procesamiento de los datos ingresados para la personalización 
+                                        de la plataforma, reportes institucionales y la generación de material educativo automatizado con IA.
+                                    </label>
+                                </div>
                                 
                                 <div className="pt-2">
                                     <Button
                                         type="submit"
                                         isLoading={loading}
-                                        className="w-full h-14 bg-white hover:bg-slate-50 text-slate-900 font-black rounded-2xl shadow-xl shadow-white/5"
+                                        className="w-full h-14 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-2xl shadow-xl shadow-indigo-600/20"
                                     >
                                         CREAR MI CUENTA
                                     </Button>
@@ -196,7 +221,7 @@ export default function RegisterPage() {
                             <div className="text-center pt-2">
                                 <p className="text-xs text-slate-500 font-medium">
                                     ¿Ya tienes una cuenta? {' '}
-                                    <Link href="/login" className="text-blue-400 font-black hover:underline transition-all">
+                                    <Link href="/login" className="text-indigo-600 font-black hover:underline transition-all">
                                         Inicia sesión aquí
                                     </Link>
                                 </p>

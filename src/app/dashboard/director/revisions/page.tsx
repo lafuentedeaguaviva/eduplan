@@ -369,6 +369,7 @@ export default function DirectorRevisionsPage() {
                         {editingRevision ? (
                             <div className="p-8">
                                 <RevisionFormEditor 
+                                    key={editingRevision.id}
                                     revision={editingRevision} 
                                     onBack={() => setEditingRevision(null)}
                                     onSaveSuccess={() => {

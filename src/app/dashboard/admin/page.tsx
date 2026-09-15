@@ -108,6 +108,14 @@ function AdminDashboardContent() {
             href: '/dashboard/admin/statistics',
             color: 'violet',
             badge: 'Analytics'
+        },
+        {
+            title: 'Finanzas y Monetización',
+            description: 'Gestiona los costos de IA, otorga bonos demo a colegios y visualiza tu rentabilidad.',
+            icon: 'account_balance_wallet',
+            href: '/dashboard/admin/finanzas',
+            color: 'emerald',
+            badge: 'Finance'
         }
     ];
 

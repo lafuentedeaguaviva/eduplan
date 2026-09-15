@@ -139,6 +139,7 @@ export function TeacherRevisionCanvas({ revisions, isLoading, onRefresh }: Teach
             <div className="min-h-[400px]">
                 {editingRevision ? (
                     <RevisionFormEditor 
+                        key={editingRevision.id}
                         revision={editingRevision} 
                         onBack={() => setEditingRevision(null)}
                         onSaveSuccess={() => {

@@ -166,10 +166,10 @@ export default function LandingPage() {
                 <div className="size-16 bg-white/10 rounded-[1.5rem] flex items-center justify-center mb-8 group-hover:scale-110 transition-transform">
                   <span className="material-symbols-rounded text-3xl font-black">edit_document</span>
                 </div>
-                <h3 className="text-3xl font-black mb-3 tracking-tight">Editor de PDCs</h3>
-                <p className="text-blue-100 font-medium leading-relaxed max-w-sm">Crea planes de desarrollo curricular paso a paso con nuestra interfaz guiada y asistencia de IA integrada.</p>
+                <h3 className="text-3xl font-black mb-3 tracking-tight">Asistente Inteligente de PDCs</h3>
+                <p className="text-blue-100 font-medium leading-relaxed max-w-sm">Crea Planes de Desarrollo Curricular paso a paso con nuestra interfaz guiada y optimización mediante IA integrada. Alineado a la normativa vigente.</p>
                 <div className="mt-8 flex gap-2">
-                  {['Paso a Paso', 'IA Integrada', 'Exportación'].map(tag => (
+                  {['Paso a Paso', 'IA Integrada', 'Normativa'].map(tag => (
                     <span key={tag} className="px-3 py-1 bg-white/10 rounded-full text-[10px] font-black uppercase tracking-widest border border-white/10">
                       {tag}
                     </span>
@@ -183,10 +183,10 @@ export default function LandingPage() {
               <div className="absolute top-0 right-0 w-40 h-40 bg-purple-50/80 rounded-full -mr-10 -mt-10 group-hover:scale-110 transition-transform duration-700" />
               <div className="relative z-10">
                 <div className="size-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600 mb-6 group-hover:scale-110 transition-transform">
-                  <span className="material-symbols-rounded text-2xl font-black">library_books</span>
+                  <span className="material-symbols-rounded text-2xl font-black">auto_awesome</span>
                 </div>
-                <h3 className="text-xl font-black text-slate-900 mb-2 tracking-tight">Banco de Contenidos</h3>
-                <p className="text-slate-500 font-medium text-sm leading-relaxed">Miles de recursos y actividades pedagógicas organizadas por nivel y área.</p>
+                <h3 className="text-xl font-black text-slate-900 mb-2 tracking-tight">Generación de Materiales y Exámenes</h3>
+                <p className="text-slate-500 font-medium text-sm leading-relaxed">Crea recursos educativos, actividades y exámenes de forma automática utilizando Inteligencia Artificial.</p>
               </div>
             </div>
 
@@ -195,10 +195,10 @@ export default function LandingPage() {
               <div className="absolute bottom-0 left-0 w-40 h-40 bg-emerald-50/80 rounded-full -ml-10 -mb-10 group-hover:scale-110 transition-transform duration-700" />
               <div className="relative z-10">
                 <div className="size-14 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 mb-6 group-hover:scale-110 transition-transform">
-                  <span className="material-symbols-rounded text-2xl font-black">assignment_turned_in</span>
+                  <span className="material-symbols-rounded text-2xl font-black">visibility</span>
                 </div>
-                <h3 className="text-xl font-black text-slate-900 mb-2 tracking-tight">Evaluación Continua</h3>
-                <p className="text-slate-500 font-medium text-sm leading-relaxed">Gestiona dimensiones Ser, Saber, Hacer y Decidir con criterios personalizados.</p>
+                <h3 className="text-xl font-black text-slate-900 mb-2 tracking-tight">Gestión y Revisión</h3>
+                <p className="text-slate-500 font-medium text-sm leading-relaxed">Flujo de trabajo integrado entre docentes y directores para la revisión y aprobación de planificaciones.</p>
               </div>
             </div>
 
@@ -210,8 +210,8 @@ export default function LandingPage() {
                   <span className="material-symbols-rounded text-3xl font-black">calendar_month</span>
                 </div>
                 <div>
-                  <h3 className="text-2xl font-black mb-2 tracking-tight">Planificación Semanal Inteligente</h3>
-                  <p className="text-slate-300 font-medium leading-relaxed">Distribuye automáticamente tus contenidos en semanas de trabajo. Conecta objetivos, actividades y evaluaciones en un solo lugar.</p>
+                  <h3 className="text-2xl font-black mb-2 tracking-tight">Planificación Semanal Integral</h3>
+                  <p className="text-slate-300 font-medium leading-relaxed">Distribuye tus contenidos en semanas de trabajo. Administra tus áreas, banco de contenidos e institucional desde un mismo lugar.</p>
                 </div>
               </div>
             </div>
@@ -238,101 +238,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── PRICING ─── */}
-      <section id="pricing" className="py-28 bg-white relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-50 via-white to-white" />
-        <div className="max-w-screen-xl mx-auto px-6 relative z-10">
-          <div className="text-center mb-20">
-            <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.3em] mb-4">Precios</p>
-            <h2 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter mb-4">Planes justos,<br /> para cada docente.</h2>
-            <p className="text-slate-500 font-medium text-lg max-w-xl mx-auto">Elige el paquete que mejor se adapte a tu ritmo de trabajo.</p>
-          </div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto items-start">
-            {/* Basic */}
-            <div className="group relative bg-white rounded-[2.5rem] border-2 border-slate-100 p-8 shadow-soft hover:shadow-medium transition-all duration-500 hover:-translate-y-1">
-              <div className="mb-8">
-                <h3 className="text-lg font-black text-slate-900 uppercase tracking-wide mb-1">Básico</h3>
-                <p className="text-slate-400 font-medium text-sm">Para empezar a planificar</p>
-              </div>
-              <div className="flex items-baseline gap-1 mb-8">
-                <span className="text-5xl font-black text-slate-900 tracking-tighter">Bs. 50</span>
-                <span className="text-slate-400 font-medium">/ mes</span>
-              </div>
-              <ul className="space-y-4 mb-10">
-                {['100 Créditos mensuales', 'Acceso a Contenidos Base', 'Exportación PDF básica'].map(item => (
-                  <li key={item} className="flex items-center gap-3 text-sm font-medium text-slate-600">
-                    <span className="size-5 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
-                      <span className="material-symbols-rounded text-sm font-black">check</span>
-                    </span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <Button variant="outline" className="w-full rounded-2xl h-12 font-black border-2">Comenzar</Button>
-            </div>
-
-            {/* Pro - Featured */}
-            <div className="group relative rounded-[2.5rem] bento-gradient-1 p-8 text-white shadow-2xl shadow-blue-500/25 md:-translate-y-4 overflow-hidden">
-              <div className="absolute top-0 right-0 px-4 py-2 bg-yellow-400 text-yellow-900 text-[9px] font-black uppercase tracking-widest rounded-bl-2xl rounded-tr-[2.5rem]">
-                ⭐ Mejor Valor
-              </div>
-              <div className="absolute bottom-0 left-0 w-60 h-60 bg-white/5 rounded-full -ml-20 -mb-20" />
-
-              <div className="relative z-10">
-                <div className="mb-8">
-                  <h3 className="text-lg font-black uppercase tracking-wide mb-1">Profesional</h3>
-                  <p className="text-blue-100 font-medium text-sm">Para docentes comprometidos</p>
-                </div>
-                <div className="flex items-baseline gap-1 mb-8">
-                  <span className="text-5xl font-black tracking-tighter">Bs. 100</span>
-                  <span className="text-blue-200 font-medium">/ mes</span>
-                </div>
-                <ul className="space-y-4 mb-10">
-                  {['250 Créditos mensuales', 'Contenidos Premium', 'Exportación Word Editable', 'Soporte Prioritario 24/7'].map(item => (
-                    <li key={item} className="flex items-center gap-3 text-sm font-semibold">
-                      <span className="size-5 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-                        <span className="material-symbols-rounded text-sm font-black">check</span>
-                      </span>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-                <Button className="w-full bg-white text-blue-900 hover:bg-blue-50 rounded-2xl h-12 font-black shadow-xl shadow-blue-900/20">
-                  Obtener Pro
-                </Button>
-              </div>
-            </div>
-
-            {/* Institutional */}
-            <div className="group relative bg-slate-900 rounded-[2.5rem] p-8 text-white shadow-soft hover:shadow-medium transition-all duration-500 hover:-translate-y-1">
-              <div className="absolute inset-0 rounded-[2.5rem] bg-[radial-gradient(ellipse_at_bottom_right,_var(--tw-gradient-stops))] from-purple-500/20 via-transparent to-transparent" />
-              <div className="relative z-10">
-                <div className="mb-8">
-                  <h3 className="text-lg font-black uppercase tracking-wide mb-1">Institucional</h3>
-                  <p className="text-slate-400 font-medium text-sm">Para unidades educativas</p>
-                </div>
-                <div className="flex items-baseline gap-1 mb-8">
-                  <span className="text-3xl font-black tracking-tighter">Personalizado</span>
-                </div>
-                <ul className="space-y-4 mb-10">
-                  {['Créditos ilimitados', 'Panel de Director', 'Gestión de Docentes', 'Integración curricular'].map(item => (
-                    <li key={item} className="flex items-center gap-3 text-sm font-medium text-slate-300">
-                      <span className="size-5 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-                        <span className="material-symbols-rounded text-sm font-black text-purple-400">check</span>
-                      </span>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-                <Button variant="outline" className="w-full rounded-2xl h-12 font-black border-2 border-slate-700 text-white hover:bg-slate-800 hover:border-slate-600">
-                  Contactar Ventas
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* ─── CTA BAND ─── */}
       <section className="py-24 relative overflow-hidden">
@@ -367,7 +273,7 @@ export default function LandingPage() {
             </div>
 
             <div className="flex items-center gap-8">
-              {['Características', 'Precios', 'Soporte'].map(link => (
+              {['Características', 'Soporte'].map(link => (
                 <Link key={link} href="#" className="text-slate-400 hover:text-white font-medium text-sm transition-colors">
                   {link}
                 </Link>

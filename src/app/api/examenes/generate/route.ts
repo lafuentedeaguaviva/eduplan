@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
 import { deepseek } from "@/lib/deepseekWrapper";
 import { AdminService } from "@/services/admin.service";
+import { MonetizationService } from "@/services/monetizacion.service";
 
 const DEFAULT_SYSTEM_PROMPT = `
 Eres un Experto Pedagogo y Generador de Exámenes.
@@ -57,6 +58,26 @@ export async function POST(req: Request) {
     if (authError || !user) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 });
     }
+
+    // 1. Verificar saldo antes de continuar
+    const config = await MonetizationService.getConfig();
+    const requiredCoins = config.costo_examen;
+    
+    // As MonetizationService uses the client DB and we have the server one here, we'll fetch manually to be safe with RLS
+    const { data: profile, error: profileError } = await supabase
+        .from('perfiles')
+        .select('monedas_disponibles')
+        .eq('id', user.id)
+        .single();
+        
+    const availableCoins = profile?.monedas_disponibles || 0;
+    
+    if (profileError || availableCoins < requiredCoins) {
+        return NextResponse.json({ 
+            error: `Saldo insuficiente. Requieres ${requiredCoins} monedas (tienes ${availableCoins}).` 
+        }, { status: 402 });
+    }
+
 
     const apiKey = process.env.DEEPSEEK_API_KEY;
     if (!apiKey) {
@@ -208,7 +229,27 @@ Por favor, asegúrate de devolver estrictamente la estructura JSON solicitada.
         }
       }
 
+      // 4. Cobrar las monedas (Deducción al final)
+      const nuevoSaldo = availableCoins - requiredCoins;
+      const { error: updateError } = await supabase
+          .from('perfiles')
+          .update({ monedas_disponibles: nuevoSaldo })
+          .eq('id', user.id);
+          
+      if (!updateError) {
+          await supabase.from('historial_transacciones').insert({
+              perfil_id: user.id,
+              tipo: 'Gasto IA',
+              descripcion: 'Generación de Examen IA',
+              monto_monedas: -requiredCoins,
+              saldo_resultante: nuevoSaldo,
+          });
+      } else {
+          console.error("No se pudo descontar las monedas al usuario", user.id);
+      }
+
     } catch (parseError) {
+
       console.error("Error procesando respuesta o guardando en DB:", parseError, result.text);
       return NextResponse.json({ error: "La IA no devolvió un formato válido o falló el guardado" }, { status: 500 });
     }

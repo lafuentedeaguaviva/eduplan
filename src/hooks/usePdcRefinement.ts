@@ -54,7 +54,18 @@ export function usePdcRefinement() {
             await AiOptimizationService.clearAiFields(currentPdcId);
             setProgressValue(15);
 
-            // 3. Ya no validamos el token localmente, la API se encarga
+            // 3. Verificar Saldo
+            setProgress(prev => [...prev, '💰 Verificando saldo de monedas (EduCoins)...']);
+            const checkRes = await fetch(`/api/monetizacion/check?userId=${userId}&pdcId=${currentPdcId}&actionType=pdc`);
+            const checkData = await checkRes.json();
+            
+            if (!checkData.success || !checkData.valid) {
+                const req = checkData.required || '?';
+                const avail = checkData.available || 0;
+                throw new Error(`Saldo insuficiente. Requieres ${req} monedas, pero tienes ${avail}.`);
+            }
+            
+            setProgress(prev => [...prev, `✅ Saldo validado. Se descontarán ${checkData.required} monedas al finalizar.`]);
             setProgress(prev => [...prev, 'ℹ️ Iniciando servicios de IA (Modelo Centralizado)...']);
             setProgressValue(20);
 
@@ -72,6 +83,24 @@ export function usePdcRefinement() {
                     }
                 }
             );
+
+            // 5. Cobrar las monedas después del éxito
+            setProgress(prev => [...prev, '💳 Procesando pago de la generación...']);
+            setProgressValue(95);
+            const cobrarRes = await fetch('/api/monetizacion/cobrar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, pdcId: currentPdcId, actionType: 'pdc' })
+            });
+            const cobrarData = await cobrarRes.json();
+            
+            if (!cobrarData.success) {
+                console.error("Error al cobrar, pero el PDC se generó:", cobrarData.error);
+                // No lanzamos error para no arruinar la experiencia del usuario, pero registramos.
+                setProgress(prev => [...prev, `⚠️ El PDC se generó pero hubo un problema descontando las monedas.`]);
+            } else {
+                setProgress(prev => [...prev, `🪙 Pago exitoso. Saldo restante: ${cobrarData.remaining} monedas.`]);
+            }
 
             setProgressValue(100);
             setProgress(prev => [...prev, '✅ ¡Optimización finalizada con éxito!']);

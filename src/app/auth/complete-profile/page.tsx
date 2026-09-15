@@ -20,7 +20,10 @@ export default function CompleteProfilePage() {
         nombres: '',
         apellidos: '',
         celular: '',
+        genero: 'Hombre',
     });
+    const [aceptaTerminos, setAceptaTerminos] = useState(false);
+    const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
     const [feedback, setFeedback] = useState({
         isOpen: false,
@@ -61,6 +64,25 @@ export default function CompleteProfilePage() {
         setLoading(true);
 
         try {
+            if (!aceptaTerminos) {
+                throw new Error("Debe aceptar los Términos y Condiciones para continuar.");
+            }
+
+            let foto_url = null;
+            if (avatarFile) {
+                const fileExt = avatarFile.name.split('.').pop();
+                const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+                const { error: uploadError, data } = await supabase.storage.from('avatars').upload(fileName, avatarFile);
+                if (!uploadError && data) {
+                    const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName);
+                    foto_url = publicUrl;
+                }
+            } else if (user.user_metadata?.avatar_url || user.user_metadata?.picture) {
+                foto_url = user.user_metadata?.avatar_url || user.user_metadata?.picture;
+            } else {
+                foto_url = formData.genero === 'Mujer' ? 'https://ui-avatars.com/api/?name=' + formData.nombres + '+' + formData.apellidos + '&background=random&gender=female' : 'https://ui-avatars.com/api/?name=' + formData.nombres + '+' + formData.apellidos + '&background=random&gender=male';
+            }
+
             // 1. Crear el perfil
             const profileRes = await AuthService.createProfile({
                 id: user.id,
@@ -69,8 +91,10 @@ export default function CompleteProfilePage() {
                 nombres: formData.nombres,
                 apellidos: formData.apellidos,
                 celular: formData.celular,
+                genero: formData.genero,
+                foto_url: foto_url,
                 estado_completitud: true
-            });
+            } as any);
 
             if (!profileRes.success) throw new Error(profileRes.error?.message);
 
@@ -146,6 +170,31 @@ export default function CompleteProfilePage() {
                                 <option className="bg-[#11141b]" value="Magister">Magíster</option>
                             </select>
                         </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">Género</label>
+                                <select
+                                    name="genero"
+                                    value={formData.genero}
+                                    onChange={handleInputChange}
+                                    className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-4 text-white font-bold outline-none focus:border-emerald-500 transition-all appearance-none cursor-pointer"
+                                >
+                                    <option className="bg-[#11141b]" value="Hombre">Hombre</option>
+                                    <option className="bg-[#11141b]" value="Mujer">Mujer</option>
+                                    <option className="bg-[#11141b]" value="Otro">Otro</option>
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest px-2">Avatar (Opcional)</label>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => setAvatarFile(e.target.files?.[0] || null)}
+                                    className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-4 text-white text-sm file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-emerald-500/10 file:text-emerald-500 hover:file:bg-emerald-500/20 focus:outline-none transition-all flex items-center"
+                                />
+                            </div>
+                        </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <Input
@@ -176,6 +225,19 @@ export default function CompleteProfilePage() {
                             className="bg-white/5 border-white/10 text-white h-14 rounded-2xl"
                             icon={<span className="material-symbols-rounded text-emerald-500">phone_iphone</span>}
                         />
+
+                        <div className="flex items-start gap-3 mt-4 px-2">
+                            <input
+                                type="checkbox"
+                                id="terms"
+                                checked={aceptaTerminos}
+                                onChange={(e) => setAceptaTerminos(e.target.checked)}
+                                className="mt-1 size-4 rounded bg-white/5 border-white/10 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                            />
+                            <label htmlFor="terms" className="text-xs text-slate-400 leading-relaxed cursor-pointer select-none">
+                                He leído y acepto los <span className="text-emerald-400 font-bold hover:underline">Términos y Condiciones</span> y la <span className="text-emerald-400 font-bold hover:underline">Política de Privacidad</span> de EduPlan Pro.
+                            </label>
+                        </div>
 
                         <Button
                             type="submit"

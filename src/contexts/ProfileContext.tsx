@@ -63,6 +63,8 @@ export function ProfileProvider({ children }: { children: React.ReactNode }) {
                                 setActiveRoleState(savedRole);
                             } else if (roles.length === 1) {
                                 setActiveRoleState(roles[0]);
+                            } else if (roles.length === 0) {
+                                setActiveRoleState('Profesor');
                             } else {
                                 setActiveRoleState(null);
                             }

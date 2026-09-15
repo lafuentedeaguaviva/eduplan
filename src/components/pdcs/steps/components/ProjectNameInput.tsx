@@ -48,7 +48,7 @@ export function ProjectNameInput({ pdcName, setPdcName }: ProjectNameInputProps)
                             placeholder="Ej: Unidad 1 - El Cuerpo Humano"
                         />
                         <div className="absolute left-10 top-1/2 -translate-y-1/2 opacity-20 pointer-events-none group-focus-within/input:text-blue-600 group-focus-within/input:opacity-100 transition-all">
-                            <span className="material-symbols-rounded text-3xl">title</span>
+                            <span className="material-symbols-rounded text-3xl">edit</span>
                         </div>
                     </div>
 
