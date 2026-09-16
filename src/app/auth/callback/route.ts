@@ -2,10 +2,14 @@ import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url)
-  const code = searchParams.get('code')
-  // if "next" is in search params, use it as the redirection URL
-  const next = searchParams.get('next') ?? '/dashboard'
+  const url = new URL(request.url)
+  const code = url.searchParams.get('code')
+  const next = url.searchParams.get('next') ?? '/dashboard'
+
+  // Construct origin safely from headers when behind a proxy
+  const host = request.headers.get('x-forwarded-host') || request.headers.get('host') || url.host;
+  const protocol = request.headers.get('x-forwarded-proto') || url.protocol.replace(':', '');
+  const origin = `${protocol}://${host}`;
 
   if (code) {
     const supabase = await createClient()
