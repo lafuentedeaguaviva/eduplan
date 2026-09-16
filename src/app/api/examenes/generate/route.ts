@@ -60,8 +60,8 @@ export async function POST(req: Request) {
     }
 
     // 1. Verificar saldo antes de continuar
-    const config = await MonetizationService.getConfig();
-    const requiredCoins = config.costo_examen;
+    const monetizationConfig = await MonetizationService.getConfig();
+    const requiredCoins = monetizationConfig.costo_examen;
     
     // As MonetizationService uses the client DB and we have the server one here, we'll fetch manually to be safe with RLS
     const { data: profile, error: profileError } = await supabase
