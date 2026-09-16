@@ -15,6 +15,7 @@ export default function BillingPage() {
     const [packages, setPackages] = useState<any[]>([]);
     const [history, setHistory] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [qrConfig, setQrConfig] = useState<any>(null);
     
     // QR Modal State
     const [showModal, setShowModal] = useState(false);
@@ -31,14 +32,16 @@ export default function BillingPage() {
     const loadData = async (userId: string) => {
         setLoading(true);
         try {
-            const [w, pkgs, hist] = await Promise.all([
+            const [w, pkgs, hist, config] = await Promise.all([
                 BillingService.getUserWallet(userId),
                 BillingService.getAvailablePackages(),
-                BillingService.getTransactionHistory(userId)
+                BillingService.getTransactionHistory(userId),
+                BillingService.getPaymentConfig()
             ]);
             setWallet(w);
             setPackages(pkgs);
             setHistory(hist);
+            setQrConfig(config);
         } catch (error) {
             console.error(error);
         } finally {
@@ -185,9 +188,13 @@ export default function BillingPage() {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
                     <Card className="w-full max-w-md p-8 rounded-[2rem] shadow-2xl border-none space-y-6">
                         <div className="text-center space-y-2">
-                            <div className="size-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <QrCode className="size-8" />
-                            </div>
+                            {qrConfig?.qr_payment_url ? (
+                                <img src={qrConfig.qr_payment_url} alt="Código QR Bancario" className="w-48 h-48 mx-auto rounded-xl shadow-md mb-4 object-contain bg-white border-2 border-indigo-100" />
+                            ) : (
+                                <div className="size-16 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <QrCode className="size-8" />
+                                </div>
+                            )}
                             <h3 className="text-2xl font-black text-slate-900">Pago por QR</h3>
                             <p className="text-slate-500 font-medium text-sm">
                                 Estás adquiriendo <span className="font-bold text-slate-900">{selectedPackage.nombre}</span> por <span className="font-bold text-slate-900">{selectedPackage.precio_bob} Bs.</span>

@@ -20,6 +20,15 @@ export const BillingService = {
     },
 
     /**
+     * Obtiene la configuración de pagos (incluye la URL del QR)
+     */
+    async getPaymentConfig() {
+        const { data, error } = await db.from('config_monetizacion').select('qr_payment_url').single();
+        if (error) return null;
+        return data;
+    },
+
+    /**
      * Obtiene el historial de transacciones del usuario
      */
     async getTransactionHistory(userId: string) {

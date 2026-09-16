@@ -13,6 +13,11 @@ export default function AdminFinanzasPage() {
     const [pendingPayments, setPendingPayments] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    
+    // User search state
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [searching, setSearching] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -39,7 +44,9 @@ export default function AdminFinanzasPage() {
     };
 
     const handleConfigChange = (key: string, val: string) => {
-        setConfig(prev => ({ ...prev, [key]: Number(val) }));
+        // if key is qr_payment_url, it's a string, otherwise convert to Number
+        const finalVal = key === 'qr_payment_url' ? val : Number(val);
+        setConfig((prev: any) => ({ ...prev, [key]: finalVal }));
     };
 
     const saveConfig = async () => {
@@ -51,6 +58,19 @@ export default function AdminFinanzasPage() {
             alert("Error al guardar.");
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleSearchUsers = async () => {
+        if (!searchQuery || searchQuery.length < 3) return;
+        setSearching(true);
+        try {
+            const res = await AdminFinanzasService.searchUsers(searchQuery);
+            setSearchResults(res);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            setSearching(false);
         }
     };
 
@@ -159,25 +179,38 @@ export default function AdminFinanzasPage() {
                     <Card className="p-8 border-none shadow-soft space-y-6">
                         <div className="space-y-4">
                             {[
-                                { key: 'costo_pdc_secundaria', label: 'Costo PDC Secundaria (1 Área)', icon: 'school' },
-                                { key: 'costo_pdc_primaria', label: 'Costo PDC Primaria (Integrado)', icon: 'child_care' },
-                                { key: 'costo_examen', label: 'Costo Examen IA', icon: 'quiz' },
-                                { key: 'costo_autocompletar', label: 'Costo Autocompletar', icon: 'magic_button' },
-                                { key: 'bono_registro_inicial', label: 'Bono de Bienvenida (Nuevos)', icon: 'redeem' }
+                                { key: 'costo_pdc_secundaria', label: 'Costo PDC Secundaria (1 Área)', icon: 'school', type: 'number' },
+                                { key: 'costo_pdc_primaria', label: 'Costo PDC Primaria (Integrado)', icon: 'child_care', type: 'number' },
+                                { key: 'costo_examen', label: 'Costo Examen IA', icon: 'quiz', type: 'number' },
+                                { key: 'costo_autocompletar', label: 'Costo Autocompletar', icon: 'magic_button', type: 'number' },
+                                { key: 'bono_registro_inicial', label: 'Bono de Bienvenida (Nuevos)', icon: 'redeem', type: 'number' },
+                                { key: 'qr_payment_url', label: 'URL Imagen QR Bancario', icon: 'qr_code_scanner', type: 'text' }
                             ].map((item) => (
-                                <div key={item.key} className="flex items-center justify-between gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                                <div key={item.key} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-slate-50 border border-slate-100">
                                     <div className="flex items-center gap-3">
                                         <span className="material-symbols-rounded text-slate-400">{item.icon}</span>
-                                        <span className="font-bold text-slate-700">{item.label}</span>
+                                        <span className="font-bold text-slate-700 whitespace-nowrap">{item.label}</span>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <input 
-                                            type="number"
-                                            className="w-20 text-center font-black text-xl rounded-xl border-slate-200 focus:border-blue-500 focus:ring-blue-500"
-                                            value={config?.[item.key] || 0}
-                                            onChange={(e) => handleConfigChange(item.key, e.target.value)}
-                                        />
-                                        <span className="text-xl">🪙</span>
+                                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                                        {item.type === 'text' ? (
+                                            <input 
+                                                type="text"
+                                                placeholder="https://..."
+                                                className="w-full sm:w-64 font-medium text-sm rounded-xl border-slate-200 focus:border-blue-500 focus:ring-blue-500"
+                                                value={config?.[item.key] || ''}
+                                                onChange={(e) => handleConfigChange(item.key, e.target.value)}
+                                            />
+                                        ) : (
+                                            <>
+                                                <input 
+                                                    type="number"
+                                                    className="w-20 text-center font-black text-xl rounded-xl border-slate-200 focus:border-blue-500 focus:ring-blue-500"
+                                                    value={config?.[item.key] || 0}
+                                                    onChange={(e) => handleConfigChange(item.key, e.target.value)}
+                                                />
+                                                <span className="text-xl">🪙</span>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             ))}
@@ -199,10 +232,61 @@ export default function AdminFinanzasPage() {
                         <div className="size-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center">
                             <span className="material-symbols-rounded">monitoring</span>
                         </div>
-                        <h2 className="text-2xl font-black text-slate-900">Top Usuarios (Ballenas)</h2>
+                        <h2 className="text-2xl font-black text-slate-900">Asignación de Bonos y Top Usuarios</h2>
                     </div>
 
                     <Card className="border-none shadow-soft overflow-hidden">
+                        <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-col sm:flex-row gap-3">
+                            <input 
+                                type="text"
+                                placeholder="Buscar usuario por nombre o correo (Mínimo 3 letras)..."
+                                className="flex-1 rounded-xl border-slate-200 focus:ring-indigo-500 focus:border-indigo-500"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleSearchUsers()}
+                            />
+                            <Button 
+                                onClick={handleSearchUsers}
+                                disabled={searching || searchQuery.length < 3}
+                                className="bg-slate-900 hover:bg-indigo-600 text-white rounded-xl"
+                            >
+                                {searching ? 'Buscando...' : 'Buscar Usuario'}
+                            </Button>
+                        </div>
+                        
+                        {(searchResults.length > 0) && (
+                            <div className="bg-indigo-50/50 border-b border-slate-100">
+                                <div className="p-3 text-xs font-black tracking-widest uppercase text-indigo-600">Resultados de Búsqueda</div>
+                                <table className="w-full text-left border-collapse">
+                                    <tbody>
+                                        {searchResults.map((user) => (
+                                            <tr key={user.id} className="border-b border-slate-100 last:border-0 hover:bg-white transition-colors">
+                                                <td className="p-4 border-b border-slate-100">
+                                                    <div className="font-bold text-slate-900">{user.nombres} {user.apellidos}</div>
+                                                    <div className="text-xs text-slate-500">{user.email}</div>
+                                                </td>
+                                                <td className="p-4">
+                                                    <div className="font-black text-slate-900">{user.monedas_disponibles || 0} 🪙</div>
+                                                </td>
+                                                <td className="p-4 text-center">
+                                                    <Button 
+                                                        size="sm" 
+                                                        onClick={() => handleAssignBonus(user.id, `${user.nombres} ${user.apellidos}`)}
+                                                        className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-md shadow-emerald-500/20"
+                                                    >
+                                                        + Dar Bono
+                                                    </Button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+
+                        <div className="p-3 text-xs font-black tracking-widest uppercase text-slate-400 bg-slate-50/80">
+                            🏆 Top 50 Usuarios (Ballenas)
+                        </div>
                         <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
                                 <thead>
@@ -223,7 +307,7 @@ export default function AdminFinanzasPage() {
                                                     </div>
                                                     <div>
                                                         <div className="font-bold text-slate-900">{whale.nombres} {whale.apellidos}</div>
-                                                        <div className="text-xs text-slate-400">{whale.correo}</div>
+                                                        <div className="text-xs text-slate-400">{whale.email}</div>
                                                     </div>
                                                 </div>
                                             </td>

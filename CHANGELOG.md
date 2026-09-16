@@ -2,6 +2,17 @@
 
 Este documento registra los cambios, nuevas características y correcciones implementadas en cada versión de la plataforma.
 
+## [v0.2.4] - Septiembre 2026
+
+### ✨ Nuevas Características
+- **Panel Avanzado de Finanzas**: Se reestructuró la pestaña de administración financiera para ofrecer control total sobre las métricas, ganancias, costos fijos y el gasto real de la IA (DeepSeek).
+- **Asignación Manual (Modelo B2B)**: Se implementó un buscador global de profesores (por nombre o email) dentro del panel de Finanzas, permitiendo inyectar "Bonos Demo" manualmente a usuarios específicos. 
+- **Código QR Dinámico**: El administrador ahora puede configurar en tiempo real la URL de la imagen del código QR bancario desde su panel. Los docentes verán esta imagen de forma dinámica al seleccionar "Pagar con QR" en la Billetera.
+- **Acceso Directo**: Se añadió el botón de acceso rápido al módulo de *Finanzas* en la barra lateral exclusiva para roles de Administrador.
+
+### 🐛 Corrección de Errores (Fixes)
+- **Carga de Datos en Finanzas**: Se corrigió un error en cadena que provocaba que todo el panel de Finanzas colapsara. Se solucionó (1) la inicialización de la configuración vacía y (2) el desajuste de columnas de bases de datos (`correo` vs `email`, y `creado_en` vs `fecha_solicitud`) en las consultas de `pagos_qr` y `perfiles`.
+
 ## [v0.2.3] - Septiembre 2026
 
 ### ✨ Nuevas Características

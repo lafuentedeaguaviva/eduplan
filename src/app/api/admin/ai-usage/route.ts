@@ -114,12 +114,33 @@ export async function GET(req: Request) {
             completionTokens: Object.values(providerStats).reduce((sum, p) => sum + p.completionTokens, 0),
         };
 
+        // 6. Obtener límites de configuración global
+        const { data: configData } = await supabase
+            .from('configuracion_global')
+            .select('ia_limits')
+            .eq('id', 'current_config')
+            .maybeSingle();
+
+        const ia_limits = configData?.ia_limits || {
+            gemini: {
+                dailyTokenLimit: 1_500_000,
+                monthlyTokenLimit: 45_000_000,
+                rpmLimit: 15,
+            },
+            deepseek: {
+                dailyTokenLimit: 10_000_000,
+                monthlyTokenLimit: 300_000_000,
+                rpmLimit: 60,
+            }
+        };
+
         return NextResponse.json({
             period: { days, since: sinceDate.toISOString() },
             globalTotals,
             providerStats,
             dailyUsage: dailyUsageArray,
             topUsers,
+            ia_limits,
         });
     } catch (error: any) {
         console.error("Error en API admin/ai-usage:", error);

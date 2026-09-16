@@ -276,6 +276,26 @@ export function Sidebar() {
                             </span>
                             {!isCollapsed && <span className="text-sm truncate font-semibold">Centro de IA</span>}
                         </Link>
+
+                        <Link
+                            href="/dashboard/admin/finanzas"
+                            title={isCollapsed ? "Finanzas" : undefined}
+                            className={cn(
+                                'relative flex items-center gap-3 rounded-2xl transition-all duration-200 group',
+                                isCollapsed ? 'p-3 justify-center' : 'px-4 py-3',
+                                pathname.startsWith('/dashboard/admin/finanzas')
+                                    ? 'bg-teal-600/15 text-teal-400'
+                                    : 'text-slate-400 hover:bg-slate-800/70 hover:text-white'
+                            )}
+                        >
+                            <span className={cn(
+                                'material-symbols-rounded text-xl transition-colors shrink-0 font-black',
+                                pathname.startsWith('/dashboard/admin/finanzas') ? 'text-teal-400' : 'text-slate-500 group-hover:text-slate-300'
+                            )}>
+                                account_balance
+                            </span>
+                            {!isCollapsed && <span className="text-sm truncate font-semibold">Finanzas</span>}
+                        </Link>
                     </>
                 )}
 

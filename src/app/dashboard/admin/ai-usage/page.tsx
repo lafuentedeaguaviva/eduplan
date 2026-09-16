@@ -34,6 +34,11 @@ interface AiUsageData {
     providerStats: Record<string, ProviderStat>;
     dailyUsage: Array<Record<string, any>>;
     topUsers: TopUser[];
+    ia_limits?: Record<string, {
+        dailyTokenLimit: number;
+        monthlyTokenLimit: number;
+        rpmLimit: number;
+    }>;
 }
 
 // --- Constantes de límites conocidos ---
@@ -45,9 +50,6 @@ const PROVIDER_CONFIG: Record<string, {
     color: string;
     textColor: string;
     bgLight: string;
-    dailyTokenLimit: number;
-    monthlyTokenLimit: number;
-    rpmLimit: number;
 }> = {
     gemini: {
         label: 'Google Gemini',
@@ -56,9 +58,6 @@ const PROVIDER_CONFIG: Record<string, {
         color: 'blue',
         textColor: 'text-blue-400',
         bgLight: 'bg-blue-500/10',
-        dailyTokenLimit: 1_500_000,    // Gemini 2.0 Flash free tier ~1.5M/day
-        monthlyTokenLimit: 45_000_000,
-        rpmLimit: 15,
     },
     deepseek: {
         label: 'DeepSeek V4 Flash',
@@ -67,9 +66,6 @@ const PROVIDER_CONFIG: Record<string, {
         color: 'emerald',
         textColor: 'text-emerald-400',
         bgLight: 'bg-emerald-500/10',
-        dailyTokenLimit: 10_000_000,   // DeepSeek tiene límites generosos
-        monthlyTokenLimit: 300_000_000,
-        rpmLimit: 60,
     }
 };
 
@@ -352,16 +348,16 @@ export default function AiUsagePage() {
                                         {/* Usage Bars */}
                                         <UsageBar
                                             used={todayUsage}
-                                            limit={config.dailyTokenLimit}
+                                            limit={data.ia_limits?.[providerKey]?.dailyTokenLimit || 0}
                                             label="Uso de Hoy"
-                                            sublabel={`Límite diario: ${formatTokenCount(config.dailyTokenLimit)}`}
+                                            sublabel={`Límite diario: ${formatTokenCount(data.ia_limits?.[providerKey]?.dailyTokenLimit || 0)}`}
                                         />
 
                                         <UsageBar
                                             used={stats?.totalTokens || 0}
-                                            limit={config.monthlyTokenLimit}
+                                            limit={data.ia_limits?.[providerKey]?.monthlyTokenLimit || 0}
                                             label={`Uso del Período (${periodDayLabels[selectedDays]})`}
-                                            sublabel={`Límite mensual: ${formatTokenCount(config.monthlyTokenLimit)}`}
+                                            sublabel={`Límite mensual: ${formatTokenCount(data.ia_limits?.[providerKey]?.monthlyTokenLimit || 0)}`}
                                         />
 
                                         {/* Daily Chart */}
@@ -454,28 +450,31 @@ export default function AiUsagePage() {
                                 <p className="text-slate-400">Límites actuales configurados para cada proveedor de IA.</p>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                                {Object.entries(PROVIDER_CONFIG).map(([key, config]) => (
-                                    <div key={key} className="bg-white/5 rounded-2xl p-5 border border-white/10 space-y-3">
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-xl">{config.icon}</span>
-                                            <span className="font-black text-white">{config.label}</span>
+                                {Object.entries(PROVIDER_CONFIG).map(([key, config]) => {
+                                    const limits = data.ia_limits?.[key];
+                                    return (
+                                        <div key={key} className="bg-white/5 rounded-2xl p-5 border border-white/10 space-y-3">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xl">{config.icon}</span>
+                                                <span className="font-black text-white">{config.label}</span>
+                                            </div>
+                                            <div className="grid grid-cols-3 gap-3 text-center">
+                                                <div>
+                                                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Diario</p>
+                                                    <p className="text-sm font-black text-slate-200">{formatTokenCount(limits?.dailyTokenLimit || 0)}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Mensual</p>
+                                                    <p className="text-sm font-black text-slate-200">{formatTokenCount(limits?.monthlyTokenLimit || 0)}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">RPM</p>
+                                                    <p className="text-sm font-black text-slate-200">{limits?.rpmLimit || 0}</p>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="grid grid-cols-3 gap-3 text-center">
-                                            <div>
-                                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Diario</p>
-                                                <p className="text-sm font-black text-slate-200">{formatTokenCount(config.dailyTokenLimit)}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Mensual</p>
-                                                <p className="text-sm font-black text-slate-200">{formatTokenCount(config.monthlyTokenLimit)}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">RPM</p>
-                                                <p className="text-sm font-black text-slate-200">{config.rpmLimit}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                     </Card>

@@ -5,19 +5,27 @@ export const AdminFinanzasService = {
      * Obtiene la configuración de costos dinámica
      */
     async getConfig() {
-        const { data, error } = await db.from('config_monetizacion').select('*').single();
+        const { data, error } = await db.from('config_monetizacion').select('*').maybeSingle();
         if (error) throw error;
-        return data;
+        return data || { 
+            id: 1, 
+            costo_pdc_secundaria: 0, 
+            costo_pdc_primaria: 0, 
+            costo_examen: 0, 
+            costo_autocompletar: 0, 
+            bono_registro_inicial: 0,
+            qr_payment_url: ''
+        };
     },
 
     /**
      * Actualiza la configuración de costos
      */
     async updateConfig(newConfig: any) {
+        const configToSave = { ...newConfig, id: newConfig.id || 1 };
         const { data, error } = await db
             .from('config_monetizacion')
-            .update(newConfig)
-            .eq('id', newConfig.id)
+            .upsert(configToSave)
             .select()
             .single();
         if (error) throw error;
@@ -30,7 +38,7 @@ export const AdminFinanzasService = {
     async getWhales() {
         const { data, error } = await db
             .from('perfiles')
-            .select('id, nombres, apellidos, correo, monedas_disponibles, ultimo_plan_comprado')
+            .select('id, nombres, apellidos, email, monedas_disponibles, ultimo_plan_comprado')
             .order('monedas_disponibles', { ascending: false })
             .limit(50);
             
@@ -49,6 +57,22 @@ export const AdminFinanzasService = {
         }));
         
         return whalesWithSpent.sort((a, b) => b.monedas_quemadas - a.monedas_quemadas);
+    },
+
+    /**
+     * Busca usuarios para asignación manual de bonos
+     */
+    async searchUsers(query: string) {
+        if (!query || query.length < 3) return [];
+        
+        const { data, error } = await db
+            .from('perfiles')
+            .select('id, nombres, apellidos, email, monedas_disponibles, ultimo_plan_comprado')
+            .or(`nombres.ilike.%${query}%,apellidos.ilike.%${query}%,email.ilike.%${query}%`)
+            .limit(10);
+            
+        if (error) throw error;
+        return data || [];
     },
 
     /**
@@ -121,11 +145,11 @@ export const AdminFinanzasService = {
             .from('pagos_qr')
             .select(`
                 *,
-                perfiles:perfil_id ( nombres, apellidos, correo ),
+                perfiles:perfil_id ( nombres, apellidos, email ),
                 paquetes_monedas:paquete_id ( nombre, monedas_otorgadas )
             `)
             .eq('estado', 'Pendiente')
-            .order('creado_en', { ascending: true });
+            .order('fecha_solicitud', { ascending: true });
 
         if (error) throw error;
         return data || [];
