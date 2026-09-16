@@ -139,7 +139,7 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 {[
                     { label: 'PDCs Activos', value: loadingPdcs ? '—' : pdcs.length.toString(), icon: 'description', color: 'text-blue-600', bg: 'bg-blue-50', shadow: 'shadow-blue-100', glow: 'bg-blue-600' },
-                    { label: 'Cuota IA Hoy', value: profileLoading ? '—' : `${profile?.solicitudes_ia_hoy || 0} / 1500`, icon: 'auto_awesome', color: 'text-purple-600', bg: 'bg-purple-50', shadow: 'shadow-purple-100', glow: 'bg-purple-600' },
+                    { label: 'EduCoins', value: profileLoading ? '—' : `${profile?.monedas_disponibles || 0}`, icon: 'auto_awesome', color: 'text-purple-600', bg: 'bg-purple-50', shadow: 'shadow-purple-100', glow: 'bg-purple-600' },
                     { label: 'PDCs Observados', value: loadingPdcs ? '—' : observedCount.toString(), icon: 'notifications', color: observedCount > 0 ? 'text-rose-600' : 'text-amber-600', bg: observedCount > 0 ? 'bg-rose-50' : 'bg-amber-50', shadow: observedCount > 0 ? 'shadow-rose-100' : 'shadow-amber-100', glow: observedCount > 0 ? 'bg-rose-500 animate-pulse' : 'bg-amber-500' },
                 ].map((stat, i) => (
                     <div key={i} className="group relative bg-white rounded-[2rem] border border-slate-100 p-7 shadow-soft hover:shadow-medium transition-all duration-500 hover:-translate-y-0.5 overflow-hidden">

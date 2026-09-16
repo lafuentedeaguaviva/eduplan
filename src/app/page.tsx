@@ -272,12 +272,11 @@ export default function LandingPage() {
               <span className="text-xl font-black tracking-tight text-white">EduPlan Pro</span>
             </div>
 
-            <div className="flex items-center gap-8">
-              {['Características', 'Soporte'].map(link => (
-                <Link key={link} href="#" className="text-slate-400 hover:text-white font-medium text-sm transition-colors">
-                  {link}
-                </Link>
-              ))}
+            <div className="flex flex-wrap justify-center items-center gap-6 md:gap-8">
+              <Link href="#features" className="text-slate-400 hover:text-white font-medium text-sm transition-colors">Características</Link>
+              <Link href="#" className="text-slate-400 hover:text-white font-medium text-sm transition-colors">Soporte</Link>
+              <Link href="/privacidad" className="text-slate-400 hover:text-white font-medium text-sm transition-colors">Privacidad</Link>
+              <Link href="/terminos" className="text-slate-400 hover:text-white font-medium text-sm transition-colors">Términos del Servicio</Link>
             </div>
 
             <p className="text-slate-500 font-medium text-sm text-center md:text-right">
