@@ -59,7 +59,10 @@ export function usePdcRefinement() {
             const checkRes = await fetch(`/api/monetizacion/check?userId=${userId}&pdcId=${currentPdcId}&actionType=pdc`);
             const checkData = await checkRes.json();
             
-            if (!checkData.success || !checkData.valid) {
+            if (!checkData.success) {
+                throw new Error(checkData.error || 'Error verificando saldo en el servidor.');
+            }
+            if (!checkData.valid) {
                 const req = checkData.required || '?';
                 const avail = checkData.available || 0;
                 throw new Error(`Saldo insuficiente. Requieres ${req} monedas, pero tienes ${avail}.`);

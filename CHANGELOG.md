@@ -2,6 +2,13 @@
 
 Este documento registra los cambios, nuevas características y correcciones implementadas en cada versión de la plataforma.
 
+## [v0.2.5] - Septiembre 2026
+
+### 🐛 Corrección de Errores (Fixes)
+- **Monetización y Cobros de IA (EduCoins)**: Se actualizó `MonetizationService` y el endpoint `/api/monetizacion/cobrar` para usar el cliente administrativo `supabaseAdmin` en el servidor, evitando bloqueos de permisos RLS al consultar y descontar saldo del usuario.
+- **Resiliencia en Costos**: Se agregaron valores por defecto (fallbacks) en las funciones de consulta de monetización para evitar valores `null` o `undefined` si la tabla de configuración no contiene datos.
+- **Claridad de Errores en Frontend**: Se ajustó `usePdcRefinement` para presentar de manera transparente los mensajes de error reales del servidor si la API falla, eliminando mensajes engañosos de saldo cero (`? monedas`).
+
 ## [v0.2.4] - Septiembre 2026
 
 ### ✨ Nuevas Características
