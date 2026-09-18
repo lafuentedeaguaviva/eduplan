@@ -5,9 +5,12 @@ Este documento registra los cambios, nuevas características y correcciones impl
 ## [v0.2.5] - Septiembre 2026
 
 ### 🐛 Corrección de Errores (Fixes)
-- **Monetización y Cobros de IA (EduCoins)**: Se actualizó `MonetizationService` y el endpoint `/api/monetizacion/cobrar` para usar el cliente administrativo `supabaseAdmin` en el servidor, evitando bloqueos de permisos RLS al consultar y descontar saldo del usuario.
-- **Resiliencia en Costos**: Se agregaron valores por defecto (fallbacks) en las funciones de consulta de monetización para evitar valores `null` o `undefined` si la tabla de configuración no contiene datos.
-- **Claridad de Errores en Frontend**: Se ajustó `usePdcRefinement` para presentar de manera transparente los mensajes de error reales del servidor si la API falla, eliminando mensajes engañosos de saldo cero (`? monedas`).
+- **Sistema de Monetización y Cobros de IA (EduCoins)**: 
+  - Se actualizó el servicio `MonetizationService` y los endpoints de backend (`/api/monetizacion/check` y `/api/monetizacion/cobrar`) para utilizar la instancia administrativa con clave de servicio (`supabaseAdmin`). Esto resuelve los bloqueos causados por las políticas RLS (Row Level Security) al verificar y descontar el saldo de los usuarios durante la optimización con IA.
+- **Resiliencia en Cálculo de Tarifas**: 
+  - Se añadieron valores por defecto coercitivos (fallbacks de 10 y 15 monedas) en las funciones de cálculo de costo, evitando valores `null` o `undefined` cuando la tabla de configuración global contenga campos vacíos.
+- **Captura y Transparencia de Errores en Frontend**: 
+  - Se modificó el hook `usePdcRefinement` para reportar explícitamente cualquier falla devuelta por la API del servidor, eliminando el mensaje confuso de falso saldo cero (`Requieres ? monedas, pero tienes 0`).
 
 ## [v0.2.4] - Septiembre 2026
 
